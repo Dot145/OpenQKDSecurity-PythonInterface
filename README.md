@@ -17,4 +17,10 @@ where `filename` is the path to the MATLAB data file which contains experimental
 ## Data Format
 The experimental data must be in a particular format to be read correctly. Though this format is subject to change (will likely become a JSON file in the near future), the current format is a MATLAB data struct (`.mat`) which contains a struct for each signal and decoy intensity (for example, if sending horizontal, vertical, diagonal, and anti-diagonal signals with four possible decoy intensities, there will be a total of 16 sub-structs). Each of these structs contains parameters relevant to the experiment such as mean photon number, misalignment, dark count, beamsplitter transmissivity, etc., which are read by the interface to generate an accurate key rate. Each struct also contains a list of times (which must be 1 by n) and detections (which must be n by 64) for each of the n time steps in the experimental data. 
 
+## Loose Ends
+
+The `misc` folder contains a python script that scans a folder for `.dat` files from RefQ and combines them into a `.mat` file to be used as an input to `getKeyRate46.m`.
+
 Email sjohnstu@uwaterloo.ca for any questions about setting up the interface or data formatting.
+
+
