@@ -5,7 +5,8 @@ This repository provides files for interfacing experimental data with https://gi
 1. This interface requires openQKDsecurity (https://github.com/nlutkenhaus/openQKDsecurity) to be installed, so begin by following the steps there. 
 2. (optional) If you wish to call openQKDsecurity from Python, you will need to install the MATLAB Engine for Python by following the steps at https://www.mathworks.com/help/matlab/matlab_external/install-the-matlab-engine-for-python.html. This is not necessary if you wish to use this interface directly in MATLAB.
 3. Place the files in the `code` folder from this repository in the openQKDsecurity folder.
-4. To run the code from MATLAB, open `Main46.m` and set the `filename` parameter to the location of experimental data. To run the code from Python, execute the following commands in a python prompt in the folder containing `getKeyRate46.m`:
+4. To run the code from MATLAB, open `Main46.m` and set the `filename` parameter to the location of experimental data, then simply run the program. 
+To run the code from Python, execute the following commands in a python prompt in the folder containing `getKeyRate46.m`:
 ```
 import matlab.engine # import MATLAB python engine
 eng = matlab.engine.start_matlab()
