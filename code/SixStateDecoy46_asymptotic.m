@@ -4,9 +4,10 @@
 %A decoy-state analysis is performed in the channel model file after generating expectations, to estimate single-photon contributions
 %In this preset we are using the asymptotic (decoy version) solver on the 4-6 protocol.
 
-function [protocolDescription,channelModel,leakageEC,parameters,solverOptions] = SixStateDecoy46_asymptotic(decoys, mis, depol, loss, pzA, pzB, pxB, pd)
+function [protocolDescription,channelModel,leakageEC,parameters,solverOptions] = SixStateDecoy46_asymptotic(decoys, mis, depol, loss, etad, pzA, pzB, pxB, pd)
     [protocolDescription,channelModel,leakageEC]=setDescription();
-    parameters=setParameters(decoys, mis, depol, loss, pzA, pzB, pxB, pd);
+%     [loss, pzB, pxB] = optimizeParameters(decoys, mis, depol, loss, etad, pzA, pzB, pxB, pd);
+    parameters=setParameters(decoys, mis, depol, loss, etad, pzA, pzB, pxB, pd);
     solverOptions=setOptions();
 end
 
@@ -25,14 +26,15 @@ end
 
 %set the input parameters
 %three types of parameters are considered: scan, fixed, optimize
-function parameters=setParameters(decoys, mis, depol, loss, pzA, pzB, pxB, pd)
+function parameters=setParameters(decoys, mis, depol, loss, etad, pzA, pzB, pxB, pd)
 
-    parameters.names = ["misalignment","loss","depol","pzB","pzA", "pxB","pd","decoys", "f", 'fullstat', 'time', 'ext']; %BB84 Decoy
+    parameters.names = ["misalignment","loss", "etad", "depol","pzB","pzA", "pxB","pd","decoys", "f", 'fullstat', 'time', 'ext']; %BB84 Decoy
 
     %%%%%%%%%%%%%%%% 1.parameter to scan over %%%%%%%%%%%%%%%%
     %must name at least one parameter to scan (can be a single-point array if only interested in a fixed value)
     
-    parameters.scan.time =  (-2:2) + 347;%t=0 is row 347
+    parameters.scan.time = 345:350;%(345:350);% + 347;%t=0 is row 347
+%     parameters.scan.loss = 1-10.^(-1*linspace(0,2,10));
 
     %%%%%%%%%%%%%%%% 2.fixed parameters %%%%%%%%%%%%%%%%
     %optional; the constant values can be either numerical or array/matrices
@@ -40,13 +42,14 @@ function parameters=setParameters(decoys, mis, depol, loss, pzA, pzB, pxB, pd)
     parameters.fixed.misalignment = mis;%0.01; 
     parameters.fixed.depol = depol;%0.01;
     parameters.fixed.pzA = pzA; %basis choice probability (for Z basis)
-    parameters.fixed.pzB = pzB;
-    parameters.fixed.pxB = pxB;
-    parameters.fixed.pd = pd;%1e-6; %dark count probability
+    parameters.fixed.pzB = 0.167;%0.25;%pzB;%
+    parameters.fixed.pxB = 0.666;%0.5;%pxB;%
+    parameters.fixed.pd = pd;%6e-7;%pd;%1e-6; %dark count probability
     parameters.fixed.f = 1;
     parameters.fixed.fullstat = 1;
-    parameters.fixed.loss = loss;%0.998;
-%     parameters.fixed.etad = 1; %0.045; %detector efficiency
+    parameters.fixed.loss = loss;%0.7008;%loss;%0.998;
+    parameters.fixed.etad = etad;
+%     parameters.fixed.time = 347;
     parameters.fixed.decoys = decoys;%, 0];%[0.48, 0.1, 0.001]; %first is signal, other two are decoys
     parameters.fixed.ext = true;
 
@@ -90,7 +93,7 @@ function solverOptions=setOptions()
     solverOptions.solver1.initmethod = 1; %minimizes norm(rho0-rho) or -lambda_min(rho), use method 1 for finite size, 2 for asymptotic v1
     
     %default options
-    solverOptions.solver1.linearconstrainttolerance = 1e-10;
+    solverOptions.solver1.linearconstrainttolerance = 1e-8;
     solverOptions.solver1.linesearchprecision = 1e-20;
     solverOptions.solver1.linesearchminstep = 1e-3;
     solverOptions.solver1.maxgap_criteria = false; %true for testing gap, false for testing f1-f0
@@ -104,3 +107,4 @@ function solverOptions=setOptions()
     
     
 end
+

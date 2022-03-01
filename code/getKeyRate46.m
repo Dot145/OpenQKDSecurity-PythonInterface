@@ -28,8 +28,8 @@ function result = getKeyRate46(data_location)%[results, parameters]=getKeyRate46
     % set up the preset and assign parameter data
     preset='SixStateDecoy46_asymptotic';
     mis = parameters(1);    depol = parameters(2);  loss = parameters(3);
-    pzA = parameters(4);    pzB = parameters(5);    pxB = parameters(6);
-    pd = parameters(7);
+    etad = parameters(4);   pzA = parameters(5);    pzB = parameters(6);
+    pxB = parameters(7);    pd = parameters(8);
     % plug in the extracted decoy and parameter information into the
     % channel description.
     % Note this is quite a bit different from how the software usually
@@ -37,7 +37,7 @@ function result = getKeyRate46(data_location)%[results, parameters]=getKeyRate46
     % input parameters is directly edited, but in this case the parameters
     % are read from the data (or assumed; check the DataLoader class to see
     % and change which are assumed)
-    [protocolDescription,channelModel,leakageEC,parameters,solverOptions]=feval(preset, decoys, mis, depol, loss, pzA, pzB, pxB, pd);
+    [protocolDescription,channelModel,leakageEC,parameters,solverOptions]=feval(preset, decoys, mis, depol, loss, etad, pzA, pzB, pxB, pd);
     
     helper=helperFunctions; %load helper function file
     [parameters.names,parameters.order]=helper.getOrder(parameters); %generate sorting order or parameters (depending on the given name list)
@@ -82,12 +82,13 @@ function result = getKeyRate46(data_location)%[results, parameters]=getKeyRate46
 %         if(solverOptions.globalSetting.verboseLevel >= 1)
 %             fprintf('main iteration: %d\n',i);
 %         end
-        
+       
         %%%%%%%%%%%%%% process single-point parameter %%%%%%%%%%%%%%
         indices=helper.expandIndices(i, dimensions); %get indices of parameters.scan
         p_scan = helper.selectCellRow(indices,parameters_scan);
         p_fixed = struct2cell(parameters.fixed)';
 
+        fprintf('time: %d\n',p_scan);
         %%%%%%%%%%%%%% optimize parameter (optional) %%%%%%%%%%%%%%
         
         %optimization of parameters (if parameters.optimize is non-empty)
@@ -123,6 +124,24 @@ function result = getKeyRate46(data_location)%[results, parameters]=getKeyRate46
         p_full=[p_scan,p_fixed,p_optimal]; %concatenate with p_fixed
         p_full = helper.reorder(p_full,parameters.order);
         
+        %%%%%%%%%%%%%% optimize loss, pxB, and pzB based on simulation data
+        %%%%% after some tests, it looks like this doesn't help key rate
+        %%%%% much and only adds probabilistic instability
+        % only if we are scanning over time!!
+%         scan_params = fieldnames(parameters.scan);
+%         if(scan_params{1} == 'time')
+%             lossIdx = parameters.names=='loss';
+%             pxBIdx = parameters.names=='pxB';
+%             pzBIdx = parameters.names=='pzB';
+%             
+%             % p_scan is the current time
+%             [optLoss, optpzB, optpxB] = optimizeParameters(decoys, mis, depol, loss, etad, pzA, pzB, pxB, pd, p_scan{1});
+%             p_full{lossIdx} = optLoss;
+%             p_full{pxBIdx} = optpxB;
+%             p_full{pzBIdx} = optpzB;
+%         end
+        %%%%%%%%%%%%%% end parameter optimization
+
         %evaluate the protocol description, channel model, and leakage
         thisProtocolDescription=protocolDescription(parameters.names,p_full);
         thisChannelModel=channelModel(thisProtocolDescription,parameters.names,p_full);
@@ -149,95 +168,56 @@ function result = getKeyRate46(data_location)%[results, parameters]=getKeyRate46
 end
 
 
-% old data loading functions; this functionality was replaced by DataLoader
-% function [rawExpectations, decoys, parameters] = loadData()
-%     num_time_steps = 0;
-% 
-%     % import the struct of all data
-%     data = load('data/Waterloo_fullData/alldata.mat');
-%     % grab the field names to navigate through the data
-%     fn = fieldnames(data);
-% 
-%     decoys_used = zeros(size(fn));
-%     % grab one experiment from which we grab parameters
-%     first_experiment = data.(fn{1});
-%     num_time_steps = length(first_experiment.times);
-%     mis = first_experiment.misalignment;
-%     depol = 0; % this isn't in their data structure
-%     loss = 1-10^(-2.7); % this is also not in the data structure
-%     pzA = 0.5; % not in the data structure
-%     pxB = 1 - first_experiment.BS1_transmissivity;
-%     pzB = first_experiment.BS1_transmissivity * first_experiment.BS2_transmissivity;
-%     pd = first_experiment.dark_count + first_experiment.background_count;
-%     parameters = [mis, depol, loss, pzA, pzB, pxB, pd];
-% 
-%     % grab the decoy choices so we can pre-allocate the rawExpectations
-%     % array
-%     for k = 1 : numel(fn)
-%         decoys_used(k) = data.(fn{k}).mean_photon_no;
+%%% function to optimize the parameters based on imported data; in
+%%% particular, this is meant to make Alice's part of the system line up
+%%% with the parameters of the experiment found in the raw detector data.
+% simulates the coherent source channel for each decoy for the
+% optimization procedure.
+function [loss, pz, px] = optimizeParameters(decoys, misalignment, depol, loss, etad, pzA, pzB, pxB, pd, time)
+    dl = DataLoader.instance();
+    imported_expectations = dl.getRawExpectations(time);
+    x0 = [loss, pzB, pxB];
+    a = {decoys, etad, misalignment, [0,1,0], depol, pd};
+    % define the function we want to minimize; a is a cell array with
+    % parameters that aren't changed (decoys, detector efficiency, dark
+    % count rate, etc.) and x is a regular array with parameters that CAN
+    % be changed (loss, depolarization parameter, basis choice
+    % probabilities for Bob)
+    f = @(x,a) minimizeDistance(simChannel(a{1}, x(1), a{2}, a{3}, a{4}, a{5}, x(2), x(3), a{6}), imported_expectations);
+    % now define the actual optimization function, which is a function of x
+    % only
+    optF = @(x) f(x,a);
+    % perform the search
+    x = fminsearch(optF, x0);
+    % update parameters if they make sense
+    if(x(1) < 1 && x(1) >= 0)
+        loss = x(1);
+    end
+    if(x(2) < 1 && x(2) > 0 && x(3) < 1 && x(3) > 0)
+        pz = x(2);
+        px = x(3);
+    else
+        pz = pzB;
+        px = pxB;
+    end
+end
+
+%%%%%%% helper functions for parameter optimization %%%%%%%%%%
+function sim = simChannel(decoys, loss, etad, mis, axis, depol, pzB, pxB, pd)
+    sim = zeros(4,64,length(decoys));
+    for i = 1 : length(decoys)
+        sim(:,:,i) = coherentSourceChannel(decoys(i), loss, etad, mis, axis, depol, pzB, pxB, pd);
+    end
+end
+
+% objective function for the optimization procedure to fit to experimental
+% parameters; currently finds the absolute value of the maximum difference,
+% but this may not be the best distance measure.
+function objective = minimizeDistance(data1, data2)
+%     obj = 0;
+%     for i = 1 : size(data1,3)
+%         obj = obj + norm(data1(:,:,i)-data2(:,:,i));
 %     end
-%     decoys = unique(decoys_used);
-%     % discard 0 intensity part for now
-%     decoys = decoys(decoys > 0);
-% 
-%     rawExpectations = zeros(4, 64, length(decoys), num_time_steps);
-% 
-%     % for now, grab only the H, V, D, and A (x and z basis) data
-%     signals_used = ['H','V','D','A'];
-%     for k = 1 : numel(fn)
-%         experiment = data.(fn{k});
-%         % check that this is using the basis data we want
-%         if(ismember(experiment.signal, signals_used))
-%             % discard 0 intensity for now...
-%             if(experiment.mean_photon_no > 0)
-%                 % grab H stuff
-%                 signal_index = signals_used==experiment.signal;
-%                 decoy_index = decoys==experiment.mean_photon_no;
-%                 rawExpectations(signal_index, :, decoy_index, :) = experiment.detections';
-%             end
-%         end
-%     end
-% end
-% 
-% function rawExpectations = loadDataOld(num_decoys, time)
-%     rawExpectations = zeros(4, 64, num_decoys);
-%     money_row = time + 347; % the column of the detections matrix that corresponds to time = 0 is 347
-%     % decoy 1: mu = 0.5
-%     mu5dat_x0 = load('data/Waterloo_fullData/Zenith_27dB_rx1ry0rz0_MeanPhotonNo0.5_ClickProb.mat');
-%     rawExpectations(1,:,1) = mu5dat_x0.detections(money_row,:);
-%     mu5dat_x1 = load('data/Waterloo_fullData/Zenith_27dB_rx-1ry0rz0_MeanPhotonNo0.5_ClickProb.mat');
-%     rawExpectations(2,:,1) = mu5dat_x1.detections(money_row,:);
-%     mu5dat_z0 = load('data/Waterloo_fullData/Zenith_27dB_rx0ry0rz1_MeanPhotonNo0.5_ClickProb.mat');
-%     rawExpectations(3,:,1) = mu5dat_z0.detections(money_row,:);
-%     mu5dat_z1 = load('data/Waterloo_fullData/Zenith_27dB_rx0ry0rz-1_MeanPhotonNo0.5_ClickProb.mat');
-%     rawExpectations(4,:,1) = mu5dat_z1.detections(money_row,:);
-%     % decoy 2: mu = 0.7
-%     mu7dat_x0 = load('data/Waterloo_fullData/Zenith_27dB_rx1ry0rz0_MeanPhotonNo0.7_ClickProb.mat');
-%     rawExpectations(1,:,2) = mu7dat_x0.detections(money_row,:);
-%     mu7dat_x1 = load('data/Waterloo_fullData/Zenith_27dB_rx-1ry0rz0_MeanPhotonNo0.7_ClickProb.mat');
-%     rawExpectations(2,:,2) = mu7dat_x1.detections(money_row,:);
-%     mu7dat_z0 = load('data/Waterloo_fullData/Zenith_27dB_rx0ry0rz1_MeanPhotonNo0.7_ClickProb.mat');
-%     rawExpectations(3,:,2) = mu7dat_z0.detections(money_row,:);
-%     mu7dat_z1 = load('data/Waterloo_fullData/Zenith_27dB_rx0ry0rz-1_MeanPhotonNo0.7_ClickProb.mat');
-%     rawExpectations(4,:,2) = mu7dat_z1.detections(money_row,:);
-%     % decoy 3: mu = 0.9
-%     mu9dat_x0 = load('data/Waterloo_fullData/Zenith_27dB_rx1ry0rz0_MeanPhotonNo0.9_ClickProb.mat');
-%     rawExpectations(1,:,3) = mu9dat_x0.detections(money_row,:);
-%     mu9dat_x1 = load('data/Waterloo_fullData/Zenith_27dB_rx-1ry0rz0_MeanPhotonNo0.9_ClickProb.mat');
-%     rawExpectations(2,:,3) = mu9dat_x1.detections(money_row,:);
-%     mu9dat_z0 = load('data/Waterloo_fullData/Zenith_27dB_rx0ry0rz1_MeanPhotonNo0.9_ClickProb.mat');
-%     rawExpectations(3,:,3) = mu9dat_z0.detections(money_row,:);
-%     mu9dat_z1 = load('data/Waterloo_fullData/Zenith_27dB_rx0ry0rz-1_MeanPhotonNo0.9_ClickProb.mat');
-%     rawExpectations(4,:,3) = mu9dat_z1.detections(money_row,:);
-%     if(num_decoys > 3)
-%         % decoy 4: mu = 0.
-%         mu0dat_x0 = load('data/Waterloo_fullData/Zenith_27dB_rx1ry0rz0_MeanPhotonNo0._ClickProb.mat');
-%         rawExpectations(1,:,4) = mu0dat_x0.detections(money_row,:);
-%         mu0dat_x1 = load('data/Waterloo_fullData/Zenith_27dB_rx-1ry0rz0_MeanPhotonNo0._ClickProb.mat');
-%         rawExpectations(2,:,4) = mu0dat_x1.detections(money_row,:);
-%         mu0dat_z0 = load('data/Waterloo_fullData/Zenith_27dB_rx0ry0rz1_MeanPhotonNo0_ClickProb.mat');
-%         rawExpectations(3,:,4) = mu0dat_z0.detections(money_row,:);
-%         mu0dat_z1 = load('data/Waterloo_fullData/Zenith_27dB_rx0ry0rz-1_MeanPhotonNo0_ClickProb.mat');
-%         rawExpectations(4,:,4) = mu0dat_z1.detections(money_row,:);
-%     end
-% end
+%     objective = obj;
+    objective = max(max(max(abs(data1-data2))));
+end

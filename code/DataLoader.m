@@ -34,14 +34,15 @@ classdef DataLoader < handle
             % grab one experiment from which we grab parameters
             first_experiment = data.(fn{1});
             num_time_steps = length(first_experiment.times);
-            mis = first_experiment.misalignment;
-            depol = 0; % this isn't in their data structure
-            loss = 1-10^(-2.7); % this is also not in the data structure
+            mis = first_experiment.rotation_angle;
+            depol = 0.0; % this isn't in their data structure
+            loss = first_experiment.loss; 
+            etad = first_experiment.detector_x0_eff;
             pzA = 0.5; % not in the data structure
             pxB = 1 - first_experiment.BS1_transmissivity;
             pzB = first_experiment.BS1_transmissivity * first_experiment.BS2_transmissivity;
-            pd = first_experiment.dark_count + first_experiment.background_count;
-            obj.parameters = [mis, depol, loss, pzA, pzB, pxB, pd];
+            pd = first_experiment.dark_count;% + first_experiment.background_count;
+            obj.parameters = [mis, depol, loss, etad, pzA, pzB, pxB, pd];
         
             % grab the decoy choices so we can pre-allocate the rawExpectations
             % array
@@ -51,11 +52,13 @@ classdef DataLoader < handle
             obj.decoys = unique(decoys_used);
             % discard 0 intensity part for now
             obj.decoys = obj.decoys(obj.decoys > 0);
-        
+            % select the largest intensity as the signal pulse
+            obj.decoys = flip(obj.decoys);
+
             obj.rawExpectations = zeros(4, 64, length(obj.decoys), num_time_steps);
         
             % for now, grab only the H, V, D, and A (x and z basis) data
-            signals_used = ['H','V','D','A'];
+            signals_used = ['D','A','H','V'];
             for k = 1 : numel(fn)
                 experiment = data.(fn{k});
                 % check that this is using the basis data we want
@@ -91,7 +94,7 @@ classdef DataLoader < handle
             if ~isempty(obj.rawExpectations)
                 rExp = obj.rawExpectations(:,:,:,time);
             else
-                disp('*** ERROR: Attempt to retrieve expectation data when data has not been loaded! ***')
+                disp('*** ERROR: Attempt to retrieve expectation data when data has not been loaded! ***\nMake sure to call setFileLocation.')
             end
         end
         function decoys = getDecoys(obj)

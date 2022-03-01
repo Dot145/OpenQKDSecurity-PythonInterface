@@ -50,7 +50,7 @@ addpath(genpath('D:\CVX\cvx')) %cvx
 tic
 
 %call main iteration function
-filename = 'data/Waterloo_fullData/alldata.mat';
+filename = 'data/Waterloo_fullData/1dB/alldata.mat';%'data/Waterloo_fullData/1dB/alldata.mat';
 % [results, parameters] = getKeyRate46(filename);
 result = getKeyRate46(filename);
 % this line converts results from a cell array to a 1x5 struct;
@@ -71,7 +71,7 @@ save('output46.mat','results','parameters');
 % %(can comment out main iteration above to skip computation)
 % load('output.mat','results','parameters_scan')
 
-%can uncomment this line to output debugging info
+%can uncomment this line to output debugging infoj
 %results.debugInfo
 
 %automatically parse and plot the results (optional)
