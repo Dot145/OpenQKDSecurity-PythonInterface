@@ -22,25 +22,12 @@ for file in filenames:
             val = float(param.split('=')[1])
          except:
             val = param.split('=')[1]
-         # make an exception for the last parameter, because of the "and"
-         if key == 'and dark_count':
-            key = 'dark_count'
-         # parse the fractions for omega, background_count, and dark_count  
-         if key == 'omega' or key == 'background_count' or key == 'dark_count':
-            valParsed = val.split('/')
-            val = float(valParsed[0])/float(valParsed[1])
-         # end of exceptions
+         
          paramDict[key] = val
-      # extract bloch vector
-      xcoord = float(params[1].split('=')[1])
-      ycoord = float(params[2].split('=')[1])
-      zcoord = float(params[3].split('=')[1])
-      # extract misalignment angle
-      misalignment = float(params[4].split('=')[1])
-      # and misalignment axis
-      xrot = float(params[5].split('=')[1])
-      yrot = float(params[6].split('=')[1])
-      zrot = float(params[7].split('=')[1])
+      # read the loss value in the file name
+      loss = file.split('_')[1] # this grabs "XdB" where X is the number we want
+      loss = float(loss[:-2]) # this grabs the number and makes it a float as well
+      loss = 10**(loss/10) # and this converts from dB to actuall loss value
       # discard second line
       f.readline()
       times = np.zeros(num_lines)
@@ -55,9 +42,9 @@ for file in filenames:
          [times[i], elevations[i], distances[i], totChannels[i]] = tokens[0:4]
          detections[i,:] = tokens[4:]
          i += 1
-      paramDict.update({'bloch': [xcoord, ycoord, zcoord], 'misalignment': misalignment, 'misalignment_axis': [xrot, yrot, zrot], 'times': times, 'elevation': elevations, 'distance': distances, 'totChannel': totChannels, 'detections': detections})
+      paramDict.update({'loss': loss, 'times': times, 'elevation': elevations, 'distance': distances, 'totChannel': totChannels, 'detections': detections})
       #   savemat(file[:-4]+'.mat', paramDict)
-      bv = paramDict['bloch']
+      bv = [paramDict['Bloch_x_coord'], paramDict['Bloch_y_coord'], paramDict['Bloch_z_coord']]
       signal = 'unknown'
       if bv == [1., 0., 0.]:
           signal = 'D'

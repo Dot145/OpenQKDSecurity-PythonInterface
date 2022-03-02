@@ -2,23 +2,47 @@ import numpy as np
 import glob
 import os
 from scipy.io import savemat
+import matlab.engine
 
 class KeyRateSolver:
     # constructor for KeyRateSolver object:
     # takes in a path, which should be a folder containing the .dat files that hold the data to be imported
-    def __init__(self, path):
-        self.path = path
+    def __init__(self, path_to_data):
+        if path_to_data[-1] == '/':
+            self.path_to_data = path_to_data
+        else:
+            self.path_to_data = path_to_data + '/'
         # default time middle 347 (data row of t=0)
         self.time_middle = 347
         # default time range: 345-350
-        self.time_range = np.arange(345, 351, 1, dtype='int') - self.time_middle
+        self.time_range = np.arange(345, 351, 1, dtype='int')
         # start matlab engine?
         # default time range to like 345-350?
 
-    def combineData(self):
+    def getKeyRate(self):
+        if hasattr(self, 'eng'):
+            self.createPreset()
+            self.eng.addpath(self.eng.genpath('code'))
+            self.result = self.eng.getKeyRate46(self.path_to_data+'/alldata.mat')
+            return self.result
+        else:
+            print('Error: please start the MATLAB engine by calling startEngine() on this object!')
+
+    def startEngine(self):
+        print('Starting MATLAB engine... (this may take a while)')
+        self.eng = matlab.engine.start_matlab()
+
+    # let the user set the time range; we adjust by time_middle so that the user time is centered as
+    # t=0 being the time of closest approach
+    def setTimeRange(self, start, end, step):
+        self.time_range = np.arange(start, end, step, dtype='int') + self.time_middle
+
+    # given a path to a folder containing a collection of .dat files, scans them and produces a matlab
+    # .mat file that contains all of the info needed for our solver.
+    def combineData(self, verbose = False):
         # get all .dat files in the directory
         filenames = []
-        for name in glob.glob(self.path+'*.dat'):
+        for name in glob.glob(self.path_to_data+'*.dat'):
             filenames.append(name)
         # check to make sure that there are .dat files, then parse them
         if len(filenames) > 0:
@@ -73,15 +97,13 @@ class KeyRateSolver:
                     paramDict.update({'signal': signal})
                     key = 'mu_'+str(paramDict['mean_photon_no'])[-1]+'_'+signal
                     huge_dict[key] = paramDict
-                    print('Processed ' + file[:-4] + ".mat.")
+                    if verbose:
+                        print('Processed ' + file[:-4] + ".mat.")
 
-            savemat('alldata.mat', huge_dict)
-            print('Saved alldata.mat.')
+            savemat(self.path_to_data+'alldata.mat', huge_dict)
+            print('Saved '+self.path_to_data+'alldata.mat.')
         else:
             print('Error: no .dat files found!')
-
-    def getKeyRate(self):
-        #create preset file
 
     # print out appropriate .m file, including the times contained in the object
     def createPreset(self):
@@ -121,12 +143,7 @@ function parameters=setParameters(decoys, mis, depol, loss, etad, pzA, pzB, pxB,
     parameters.fixed.loss = loss
     parameters.fixed.etad = etad;
     parameters.fixed.decoys = decoys;
-    parameters.fixed.ext = true;
-    %must be in the format of [lowerBound, initialValue, upperBound]
-    
-%     parameters.optimize.mu1 = [0.1,0.2,0.3]; %can optionally optimize laser intensity (need to comment it out mu1 in 'fixed' category)
-    
-    
+    parameters.fixed.ext = true;    
 end
 
 function solverOptions=setOptions()
@@ -157,5 +174,9 @@ function solverOptions=setOptions()
     solverOptions.solver2.epsilonprime = 1e-12;
 end
 '''
-    def setTimeRange(self, times):
-        self.time_range = times
+        # write this huge text to a file
+        filename = 'code/SixStateDecoy46_asymptotic.m'
+        f = open(filename, 'w')
+        f.write(rawPresetStr)
+        f.close()
+        print('Wrote ' + filename + '\n with time values ' + str(self.time_range - self.time_middle) + '\n relative to closest approach.')

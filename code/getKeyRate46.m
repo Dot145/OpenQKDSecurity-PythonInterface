@@ -164,7 +164,6 @@ function result = getKeyRate46(data_location)%[results, parameters]=getKeyRate46
     
     result.results = results;
     result.parameters = parameters;
-    disp(size(result))
 end
 
 
