@@ -22,7 +22,6 @@ class KeyRateSolver:
     def getKeyRate(self):
         if hasattr(self, 'eng'):
             self.createPreset()
-            self.eng.addpath(self.eng.genpath('code'))
             self.result = self.eng.getKeyRate46(self.path_to_data+'/alldata.mat')
             return self.result
         else:
@@ -31,6 +30,8 @@ class KeyRateSolver:
     def startEngine(self):
         print('Starting MATLAB engine... (this may take a while)')
         self.eng = matlab.engine.start_matlab()
+        self.eng.addpath(self.eng.genpath('code'))
+
 
     # let the user set the time range; we adjust by time_middle so that the user time is centered as
     # t=0 being the time of closest approach

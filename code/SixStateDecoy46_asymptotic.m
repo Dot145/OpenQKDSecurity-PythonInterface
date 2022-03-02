@@ -14,7 +14,7 @@ end
 function parameters=setParameters(decoys, mis, depol, loss, etad, pzA, pzB, pxB, pd)
 
     parameters.names = ["misalignment","loss", "etad", "depol","pzB","pzA", "pxB","pd","decoys", "f", 'fullstat', 'time', 'ext']; %BB84 Decoy
-    parameters.scan.time = [345 346 347 348 349 350];
+    parameters.scan.time = [342 344 346 348 350 352];
     parameters.fixed.misalignment = mis;
     parameters.fixed.depol = depol;
     parameters.fixed.pzA = pzA; 
