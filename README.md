@@ -7,7 +7,7 @@ This repository provides files for interfacing experimental data with https://gi
 3. Place the files in the `code` folder from this repository in the openQKDsecurity folder.
 4. To run the code from MATLAB, open `Main46.m` and set the `filename` parameter to the location of experimental data, then simply run the program. 
 5. To run the code from Python, create a KeyRateSolver object in `KeyRateSolver.m`. The following is an example of how that might be done:
-```
+```python
 from KeyRateSolver import KeyRateSolver
 solver = KeyRateSolver('path/to/data/')
 ```
@@ -28,7 +28,7 @@ Descriptions of the methods of the KeyRateSolver class, as well as an example of
 | getKeyRate | none | result : dict | creates a preset file, reads `alldata.mat` in the data path set by the constructor, then computes the key rate for the provided time range. The return value is a MATLAB struct, which is converted into to a python dict in the KeyRateSolver class. This contains all of the parameters of the experiment as well as the results. An example of how to extract key rate from the result is given below. |
 
 Here is an example of how to set up the KeyRateSolver class in Python, where the RefQ .dat files are contained in the `data/` directory:
-```
+```python
 # import the KeyRateSolver object from the file
 from KeyRateSolver import KeyRateSolver
 # initialize object and point to data directory
@@ -46,7 +46,7 @@ results = k.getKeyRate()
 ```
 
 After this, we can extract key rate information from `results` and plot it, for example with matplotlib:
-```
+```python
 import matplotlib.pyplot as plt
 import numpy as np
 # extract the times that were scanned over
