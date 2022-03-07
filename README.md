@@ -68,6 +68,8 @@ plt.show()
 
 ## Loose Ends
 
+At the moment, the object overrides basis choice probabilities from the imported data and defaults to px = 2/3, py = pz = 1/6. This matches the data that has been generated so far, but is subject to change in the future (eventually, this overriding functionality will be removed and the basis choice probabilities will be directly imported).
+
 The `misc` folder contains a python script that scans a folder for `.dat` files from RefQ and combines them into a `.mat` file to be used as an input to `getKeyRate46.m`. This is the same functionality provided by the combineData function of the KeyRateSolver class, but in the form of a standalone script.
 
 Email scott.johnstun@uwaterloo.ca for any questions about setting up the interface or data formatting.
