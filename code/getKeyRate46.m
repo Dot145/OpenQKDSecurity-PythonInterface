@@ -88,6 +88,18 @@ function result = getKeyRate46(data_location)%[results, parameters]=getKeyRate46
         p_scan = helper.selectCellRow(indices,parameters_scan);
         p_fixed = struct2cell(parameters.fixed)';
 
+        %%%%%% ALSO PROCESS LOSS AS A FUNCTION OF TIME %%%%%%%
+        % check if we are scanning over time
+        scan_param = fieldnames(parameters.scan);
+        scan_param = scan_param{1}; %come on, matlab :(
+        if(strcmp(scan_param, 'time'))
+            % current time index
+            current_time = p_scan;
+            % find the index of the loss value in the fixed parameter list
+            lossIdx = strcmp(fieldnames(parameters.fixed), 'loss');
+            p_fixed(lossIdx) = {[data_obj.getLoss(current_time)]};
+        end
+
         fprintf('time: %d\n',p_scan);
         %%%%%%%%%%%%%% optimize parameter (optional) %%%%%%%%%%%%%%
         

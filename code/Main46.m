@@ -65,7 +65,7 @@ toc
 %%%%%%%%%%%%%%%%%%%%% Output Results %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %save the results to file
-save('output46.mat','results','parameters');
+save('fullscan_1dB_vac.mat','results','parameters');
 
 % %can also load a previous session's result to plot it
 % %(can comment out main iteration above to skip computation)
