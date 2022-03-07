@@ -3,6 +3,7 @@ import glob
 import os
 from scipy.io import savemat
 import matlab.engine
+import math
 
 class KeyRateSolver:
     # constructor for KeyRateSolver object:
@@ -36,6 +37,19 @@ class KeyRateSolver:
     # let the user set the time range; we adjust by time_middle so that the user time is centered as
     # t=0 being the time of closest approach
     def setTimeRange(self, start, end, step):
+        try:
+            # clean up any decimals before passing into arange
+            start = int(math.floor(start))
+            step = int(round(step))
+            # step of 0 doesn't work
+            if step == 0:
+                step = 1
+            end = int(math.ceil(end))
+            assert start < end
+        except:
+            print('Error: unable to set the time range. Make sure the starting time is less than the ending time, the step is positive, and that all arguments are integers.')
+            print('\tUsage: setTimeRange(start, end, step)')
+            return
         self.time_range = np.arange(start, end, step, dtype='int') + self.time_middle
 
     # given a path to a folder containing a collection of .dat files, scans them and produces a matlab
@@ -124,7 +138,7 @@ function [protocolDescription,channelModel,leakageEC]=setDescription()
 end
 function parameters=setParameters(decoys, mis, depol, loss, etad, pzA, pzB, pxB, pd)
 
-    parameters.names = ["misalignment","loss", "etad", "depol","pzB","pzA", "pxB","pd","decoys", "f", 'fullstat', 'time', 'ext']; %BB84 Decoy
+    parameters.names = ["misalignment","loss", "etad", "depol","pzB","pzA", "pxB","pd","decoys", "f", 'fullstat', 'time', 'ext']; 
     parameters.scan.time = '''
         # now is where the time range is set
         rawPresetStr += str(self.time_range)
