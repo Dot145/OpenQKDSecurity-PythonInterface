@@ -6,7 +6,7 @@ This repository provides files for interfacing experimental data with https://gi
 2. (optional) If you wish to call openQKDsecurity from Python, you will need to install the MATLAB Engine for Python by following the steps at https://www.mathworks.com/help/matlab/matlab_external/install-the-matlab-engine-for-python.html. This is not necessary if you wish to use this interface directly in MATLAB.
 3. Place the files in the `code` folder from this repository in the openQKDsecurity folder.
 4. To run the code from MATLAB, open `Main46.m` and set the `filename` parameter to the location of experimental data, then simply run the program. 
-5. To run the code from Python, create a KeyRateSolver object in `KeyRateSolver.m`. The following is an example of how that might be done:
+5. To run the code from Python, create a KeyRateSolver object. The following is an example of how that might be done:
 ```python
 from KeyRateSolver import KeyRateSolver
 solver = KeyRateSolver('path/to/data/')
