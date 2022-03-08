@@ -66,6 +66,14 @@ plt.ylabel('Asymptotic Key Rate')
 plt.show()
 ```
 
+## Potential Issues and Workarounds
+### I'm having problems installing the MATLAB engine in python!
+There isn't a lot I can do here, but there are several options to try. One option that worked for me was to create a conda environment with an appropriate version of python (3.9.7, for example) and perform the setup there.
+
+### I'm getting an error that says "The global CVX solver selection cannot be changed while a model is being constructed."
+There are two things that can cause this to happen. The most common reason is that the program was aborted mid-computation, and so the convex optimization module CVX was aborted mid-computation, which can cause issues. This error can be solved by calling `startEngine()` again. 
+Another source of this issue is when the imported data leads to an infeasible semidefinite program in the key rate solver, which typically means that the detection data is nonphysical or there is a mismatch between the experimental parameters (such as basis choice probabilities) that generated the data and the parameters contained in the input data.
+
 ## Loose Ends
 
 At the moment, the object overrides basis choice probabilities from the imported data and defaults to px = 2/3, py = pz = 1/6. This matches the data that has been generated so far, but is subject to change in the future (eventually, this overriding functionality will be removed and the basis choice probabilities will be directly imported).
