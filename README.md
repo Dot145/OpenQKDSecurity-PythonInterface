@@ -20,12 +20,13 @@ The experimental data must be in a particular format to be read correctly. Thoug
 Descriptions of the methods of the KeyRateSolver class, as well as an example of use, follow.
 | Function | Inputs | Outputs | Description |
 | ----------- | ----------- | ----------- | ----------- |
-| \_\_init\_\_ | path to data : string | KeyRateSolver object | Initializes a KeyRateSolver object and stores the path to observation data (the folder that contains .dat files or `alldata.mat` |
+| \_\_init\_\_ | `path_to_data` : string | KeyRateSolver object | Initializes a KeyRateSolver object and stores the path to observation data (the folder that contains .dat files or `alldata.mat` |
 | startEngine | none | none | starts the MATLAB engine in python. Must be called before getKeyRate() |
-| setTimeRange | start, end, step : ints | none | Sets the time range of the key rate solver. Closest approach of the satellite is at t=0. Functions identical to numpy's `arange` function. |
-| combineData | verbose : boolean (optional) | none | Scans the folder set in the constructor for .dat files and compiles them into a file called `alldata.mat`, which is used by the key rate solver |
+| setTimeRange | `start`, `end`, `step` : ints | none | Sets the time range of the key rate solver. Closest approach of the satellite is at t=0. Functions identical to numpy's `arange` function. |
+| setReceiverBasisChoice | `basis` : string, `probability` : int | none | Sets the basis choice probabilities for the receiver Bob. The first argument is the primary (biased) basis choice, whose probability will be set to the second argument `probability`. The other two basis choices are implicitly set to divide the remaining probability in half. |
+| combineData | `verbose` : boolean (optional) | none | Scans the folder set in the constructor for .dat files and compiles them into a file called `alldata.mat`, which is used by the key rate solver |
 | createPreset | none | none | Sets up a preset file in the solver's software with the time range set by setTimeRange. This function must be called each time the time range is changed, but do note that it is called in getKeyRate() |
-| getKeyRate | none | result : dict | creates a preset file, reads `alldata.mat` in the data path set by the constructor, then computes the key rate for the provided time range. The return value is a MATLAB struct, which is converted into to a python dict in the KeyRateSolver class. This contains all of the parameters of the experiment as well as the results. An example of how to extract key rate from the result is given below. |
+| getKeyRate | none | dict | creates a preset file, reads `alldata.mat` in the data path set by the constructor, then computes the key rate for the provided time range. The return value is a MATLAB struct, which is converted into to a python dictionary in the KeyRateSolver class, and it can also be accessed from the `result` field of a KeyRateSolver object. This result dictionary contains all of the parameters of the experiment as well as the results. An example of how to extract key rate from the result is given below. |
 
 Here is an example of how to set up the KeyRateSolver class in Python, where the RefQ .dat files are contained in the `data/` directory:
 ```python
