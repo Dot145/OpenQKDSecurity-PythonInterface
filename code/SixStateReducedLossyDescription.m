@@ -140,7 +140,7 @@ function protocolDescription = SixStateReducedLossyDescription(names,p)
         end
     end
 
-    fprintf("number of observables: %d\n", length(observables));
+%     fprintf("number of observables: %d\n", length(observables));
     
     %%%%%%%%%%%%%%%%%%%%% user-supplied description end %%%%%%%%%%%%%%%%%%%%%%%%%
 

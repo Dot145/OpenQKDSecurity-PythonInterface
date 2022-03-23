@@ -1,7 +1,7 @@
 
-function [protocolDescription,channelModel,leakageEC,parameters,solverOptions] = SixStateDecoy46_asymptotic(decoys, mis, depol, loss, etad, pzA, pzB, pxB, pd)
+function [protocolDescription,channelModel,leakageEC,parameters,solverOptions] = SixStateDecoy46_asymptotic(decoys, etad, pzA, pzB, pxB, pd)
     [protocolDescription,channelModel,leakageEC]=setDescription();
-    parameters=setParameters(decoys, mis, depol, loss, etad, pzA, pzB, pxB, pd);
+    parameters=setParameters(decoys, etad, pzA, pzB, pxB, pd);
     solverOptions=setOptions();
 end
 function [protocolDescription,channelModel,leakageEC]=setDescription()
@@ -11,22 +11,18 @@ function [protocolDescription,channelModel,leakageEC]=setDescription()
     leakageEC=str2func('generalEC');
 
 end
-function parameters=setParameters(decoys, mis, depol, loss, etad, pzA, pzB, pxB, pd)
+function parameters=setParameters(decoys, etad, pzA, pzB, pxB, pd)
 
-    parameters.names = ["misalignment","loss", "etad", "depol","pzB","pzA", "pxB","pd","decoys", "f", 'fullstat', 'time', 'ext']; 
-    parameters.scan.time = [345 346 347 348 349 350];
-    parameters.fixed.misalignment = mis;
-    parameters.fixed.depol = depol;
+    parameters.names = ["etad", "pzB","pzA", "pxB","pd","decoys", "f", 'fullstat', 'time']; 
+    parameters.scan.time = [342 343 344 345 346 347 348 349 350 351 352];
     parameters.fixed.pzA = pzA; 
-    parameters.fixed.pzB = 0.16699999999999998;
+    parameters.fixed.pzB = 0.167;
     parameters.fixed.pxB = 0.666;
     parameters.fixed.pd = pd;
-    parameters.fixed.f = 1;
+    parameters.fixed.f = 1.16;
     parameters.fixed.fullstat = 1;
-    parameters.fixed.loss = loss;
     parameters.fixed.etad = etad;
     parameters.fixed.decoys = decoys;
-    parameters.fixed.ext = true;    
 end
 
 function solverOptions=setOptions()
@@ -41,7 +37,7 @@ function solverOptions=setOptions()
     solverOptions.optimizer.linearSearchAlgorithm = 'iterative'; 
     solverOptions.optimizer.iterativeDepth = 2; 
     solverOptions.optimizer.maxSteps = 10; 
-    solverOptions.optimizer.optimizerVerboseLevel = 1; 
+    solverOptions.optimizer.optimizerVerboseLevel = 0; 
 
     solverOptions.solver1.name = 'asymptotic_inequality';
     solverOptions.solver1.maxgap = 1e-6; 

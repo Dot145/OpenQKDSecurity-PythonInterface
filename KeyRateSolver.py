@@ -146,9 +146,9 @@ class KeyRateSolver:
     def createPreset(self):
         # this is the first part of the preset file, up to declaring the time.
         rawPresetStr = '''
-function [protocolDescription,channelModel,leakageEC,parameters,solverOptions] = SixStateDecoy46_asymptotic(decoys, mis, depol, loss, etad, pzA, pzB, pxB, pd)
+function [protocolDescription,channelModel,leakageEC,parameters,solverOptions] = SixStateDecoy46_asymptotic(decoys, etad, pzA, pzB, pxB, pd)
     [protocolDescription,channelModel,leakageEC]=setDescription();
-    parameters=setParameters(decoys, mis, depol, loss, etad, pzA, pzB, pxB, pd);
+    parameters=setParameters(decoys, etad, pzA, pzB, pxB, pd);
     solverOptions=setOptions();
 end
 function [protocolDescription,channelModel,leakageEC]=setDescription()
@@ -158,30 +158,27 @@ function [protocolDescription,channelModel,leakageEC]=setDescription()
     leakageEC=str2func('generalEC');
 
 end
-function parameters=setParameters(decoys, mis, depol, loss, etad, pzA, pzB, pxB, pd)
+function parameters=setParameters(decoys, etad, pzA, pzB, pxB, pd)
 
-    parameters.names = ["misalignment","loss", "etad", "depol","pzB","pzA", "pxB","pd","decoys", "f", 'fullstat', 'time', 'ext']; 
+    parameters.names = ["etad", "pzB","pzA", "pxB","pd","decoys", "f", 'fullstat', 'time']; 
     parameters.scan.time = '''
         # now is where the time range is set
         rawPresetStr += np.array2string(self.time_range).replace('\n','')
-        # now print the rest of the file
         rawPresetStr += ''';
-    parameters.fixed.misalignment = mis;
-    parameters.fixed.depol = depol;
     parameters.fixed.pzA = pzA; 
     parameters.fixed.pzB = '''
         rawPresetStr += str(round(self.pzB, 4))
         rawPresetStr += ''';
     parameters.fixed.pxB = '''
         rawPresetStr += str(round(self.pxB, 4))
+        # now print the rest of the file
+
         rawPresetStr += ''';
     parameters.fixed.pd = pd;
-    parameters.fixed.f = 1;
+    parameters.fixed.f = 1.16;
     parameters.fixed.fullstat = 1;
-    parameters.fixed.loss = loss;
     parameters.fixed.etad = etad;
     parameters.fixed.decoys = decoys;
-    parameters.fixed.ext = true;    
 end
 
 function solverOptions=setOptions()
@@ -196,7 +193,7 @@ function solverOptions=setOptions()
     solverOptions.optimizer.linearSearchAlgorithm = 'iterative'; 
     solverOptions.optimizer.iterativeDepth = 2; 
     solverOptions.optimizer.maxSteps = 10; 
-    solverOptions.optimizer.optimizerVerboseLevel = 1; 
+    solverOptions.optimizer.optimizerVerboseLevel = 0; 
 
     solverOptions.solver1.name = 'asymptotic_inequality';
     solverOptions.solver1.maxgap = 1e-6; 
