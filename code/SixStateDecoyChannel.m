@@ -41,19 +41,24 @@ function channelModel = SixStateDecoyChannel(protocolDescription,names,p)
     probList = [ (1-pzA)/2; (1-pzA)/2; pzA/2; pzA/2];
 
 
-    % Alice and Bob joint statistics
-    phiP = [1;0;0;1]/sqrt(2);
-    phiP = phiP*phiP';
-    rhoAB = lossChannel(depolarizationChannel(rotationChannel(phiP, misalignment, axis), depol), loss);
-    rhoAB = (rhoAB + rhoAB')/2;
-    
+%     
+%     rhoAB = lossChannel(depolarizationChannel(rotationChannel(phiP, misalignment, axis), depol), loss);
+%     rhoAB = (rhoAB + rhoAB')/2;
+%     
     % get decoy information
     numDecoys = length(decoys);
-
-    observables = protocolDescription.observables;
     
-    %partial trace over flying qubit system to obtain local rhoA
-
+    % Construct entangled state between Alice and Bob in order to determine
+    % Alice's expectation values
+    phiP = [1;0;0;1]/sqrt(2);
+    % apply the loss channel to this ideal state, but with a loss of zero.
+    % I do this so that rhoAB has the right dimensions automatically (even
+    % if the channel model is changed--as long as the lossChannel function
+    % is also changed appropriate :) )
+    rhoAB = lossChannel(phiP*phiP', 0);
+    observables = protocolDescription.observables;
+    % Compute Alice's expectations based on the ideal phiP state to ensure 
+    % her state is unchanged
     for i = 1 : length(observables)
         if protocolDescription.obsMask(i) == 0
             expectation = trace(observables{i} * rhoAB);
@@ -61,7 +66,7 @@ function channelModel = SixStateDecoyChannel(protocolDescription,names,p)
         end 
     end
 
-    %fprintf('number of expectations before decoy: %d\n', length(expectations))
+    fprintf('number of expectations before decoy: %d\n', length(expectations))
     
     % simulate the channel (returns 4 x 64 matrix for each decoy)
     %%%%%%%%%%%%%% INSERT EXTERNAL DETECTOR DATA HERE %%%%%%%%%%%%%%%%%%%% 
@@ -103,9 +108,6 @@ function channelModel = SixStateDecoyChannel(protocolDescription,names,p)
     % normalize by signal state probabilities (?)
     bipartiteExpectationsL = diag(probList) * bipartiteExpectationsL;
     bipartiteExpectationsU = diag(probList) * bipartiteExpectationsU;
-
-%     bipartiteExpectationsL_1D = reshape(bipartiteExpectationsL, [L1*L2, 1]);
-%     bipartiteExpectationsU_1D = reshape(bipartiteExpectationsU, [L1*L2, 1]);
     
     % QBER and gain statistics (?)
     if(fullstat == 0)
@@ -163,30 +165,9 @@ function channelModel = SixStateDecoyChannel(protocolDescription,names,p)
     % signal state proportion (?)
     P1 = decoys(1) * exp(-1*decoys(1));
 
-    % OLD error rate and sifting probability 
-%     errorRate = zeros(1,3);
-%     pSift = zeros(1,3);
-%     for basis = 1 : numbases
-%         % error for each given basis assuming the probability of Alice
-%         % choosing 1 and 0 are the same
-%         tempErrorObs = kron(qubitProj(basis, 1, true), blkdiag(qubitProj(basis, 2, false),[0]));
-%         tempErrorObs = tempErrorObs + kron(qubitProj(basis, 2, true), blkdiag(qubitProj(basis, 1, false),[0]));
-%         
-%         % compute the probability of observing this error
-%         errorProb = trace(tempErrorObs*rhoAB);
-%         errorProb = errorProb + trace(kron(eye(2), diag([0,0,1]))*rhoAB)/2;
-%         errorRate(basis) = errorProb;
-%         pSift(basis) = bProbB(basis)*bProbA(basis);
-%     end
-%     disp(imag(expectations))
-    %fprintf('number of expectations: %d\n', length(expectations))
+    fprintf('number of expectations: %d\n', length(expectations))
     
     %%%%%%%%%%%%%%%%%%%%% user-supplied channel model end %%%%%%%%%%%%%%%%%%%%%%%%%
-
-    % OLD stuff
-%     channelModel.expectations = real(expectations);
-%     channelModel.errorRate = errorRate;
-%     channelModel.pSift = pSift;
 
     channelModel.expectations = real(expectations);
     channelModel.expMask = expMask;
@@ -199,6 +180,8 @@ end
 %%%%%%%%%%%%%%%%%%%% HELPER FUNCTIONS %%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Functions to define channel operation
+% at the moment, depolarizationChannel and rotationChannel are not used.
+% They were useful when the protocol was qubit-based.
 
 function rhoPrime = depolarizationChannel(rho, depol) 
     % Nielsen & Chuang p. 379
@@ -206,7 +189,7 @@ function rhoPrime = depolarizationChannel(rho, depol)
     pauliMatrices = {eye(2), [0,1;1,0], [0,1i;-1i,0], [1,0;0,-1]};
     krausOps{1} = kron(eye(2), sqrt(1-3/4*depol)*eye(2));
     for i = 2 : length(pauliMatrices)
-        krausOps{i} = kron(eye(2), sqrt(depol/4)*pauliMatrices{i}/2);
+        krausOps{i} = kron(eye(2), sqrt(depol)*pauliMatrices{i}/2);
     end
     rhoPrime = krausFunc(rho, krausOps);
 end
@@ -243,21 +226,6 @@ function rhoPrime = lossChannel(rho,loss)
 end
 
 % Functions to help with decoy analysis
-
-% compute the effect of misalignment on the input state;
-% used for constructing the passive mapping table
-function psiPrime = rotateState(psi, theta, axis)
-    X = [0,1; 1,0];
-    Y = [0, -1i; 1i, 0];
-    Z = [1,0; 0,1]; 
-    % assume axis is a vector on the bloch sphere
-    % make sure it's normalized juuuust in case...
-    axis = axis / norm(axis);
-    % Rotation by theta about arbitrary axis:
-    % cos(theta/2) I - i sin(theta/2) n . sigma
-    R = cos(theta)*eye(2) - 1i*sin(theta)*(axis(1)*X + axis(2)*Y + axis(3)*Z);
-    psiPrime = R * psi;
-end
 
 % maps the 64 possible detection events to 7 outcomes:
 %               (x+, x-, y+, y-, z+, z-) + null
@@ -311,102 +279,6 @@ function mapping = createMapping(px)
         end
     end
 end
-
-% % simulation of channel for WCP source
-% % based on Wenyuan's code in pmBB84WCPChannel.m
-% % for each input state that Alice sends (H, V, D, A), with the parameters
-% % in the input arguments of the function, this function computes the 4 x 64
-% % table of probabilities for each detection event (x0, x1, y0, y1, z0, z1)
-% % for Bob
-% function expectations = coherentSourceChannel(mu, loss, etad, theta, axis, depol, pz, px, pd)
-%     expectations = zeros(4, 64);
-%     t = (1-loss)*etad; % channel transmittance = (1-loss) * detector efficiency
-%     %anonymous function to calculate poisson distribution
-%     Poisson = @(mu, n) exp(-mu)*mu^n/factorial(n); 
-% 
-%     % define states so we can construct passive mapping table
-%     h = [1;0];              v = [0;1];
-%     d = (h+v)/sqrt(2);      a = (h-v)/sqrt(2);
-%     r = (h+1i*v)/sqrt(2);   l = (h-1i*v)/sqrt(2);
-%     inputStates = {d, a, h, v}; % sending x and z
-% 
-%     % basis probabilities
-%     py = 1-pz-px;
-%     bProb = [px, py, pz];
-%     % re-ordered to align with Strathclyde data
-% 
-%     % passive mapping depends on the direction misalignment is in
-%     % for right now, assume it's in y direction
-%     % this corresponds to the table at the top of page 9 in the decoy paper
-%     mapping_passive = zeros([4,6]);
-%     % kColumn = states sent by Alice (4 possible)
-%     % jRow = measurements made by Bob (6 possible)
-%     for kColumn = 1:size(mapping_passive,1)
-%         for jRow = 1:size(mapping_passive,2)
-%             % 1 = x basis, 2 = y basis, 3 = z basis
-%             basis = floor((jRow-1)/2) + 1;
-%             % j mod 2 = the qubit value, except matlab is r-word
-%             index = mod(jRow-1, 2)+1;
-%             % (if jRow = 4, we are in the y basis with index 2, which means
-%             % we're sending |1> in the y basis, or |L>)
-%             % construct the input state based on misalignment
-%             
-%             %inputState = cos(theta)*inputStates{kColumn} + sin(theta)*orthogStates{kColumn};
-% %             inputState = rotateState(inputStates{kColumn}, theta, axis);
-% %             % construct passive mapping matrix
-% %             mapping_passive(kColumn, jRow) = bProb(basis) * inputState' * ...
-% %                 qubitProjXYZ(basis, index, false) * inputState;
-%             
-%             % try depolarization as well?
-%             % construct input states that are rotated by some theta, but
-%             % theta is depol and we do both theta = -depol and +depol
-%             depolStateL = rotateState(inputStates{kColumn}, depol, axis);
-%             depolStateR = rotateState(inputStates{kColumn}, -depol, axis);
-%             % combine them as a superposition?
-%             mapping_passive(kColumn, jRow) = bProb(basis) * 1/2*real(depolStateL' * ...
-%                 qubitProjXYZ(basis, index, false) * depolStateL + depolStateR' * ...
-%                 qubitProjXYZ(basis, index, false) * depolStateR);
-%         end
-%     end
-% 
-%     for input=1:4
-%         % iterating over each input state
-%         
-%         for pattern = 1:64
-%             % iterating over each pattern (detection, so 6 possible
-%             % outcomes and 2^6 = 64)
-%             
-% % The ordering of the detectors in the string is: 
-% % (x+, x-, y+, y-, z+, z-).  
-% % For example, the string 100000 corresponds to only the detector for x+ firing.
-% 
-%             % convert pattern to "binary" detection events
-%             outcome = index1to6(pattern);
-%             Ppattern = 1;
-%             % passive basis choice
-%             for detection = 1 : 6
-%                 % iterating over each detector
-%                 % probability that we don't receive 0 photons:
-%                 %%% trying out depolarization
-% %                 if outcome(detection) == 1
-% %                     Pclick = 1 - Poisson(mu*t*mapping_passive(input, detection)*(1-depol/2),0);
-% %                 elseif outcome(detection) == 0
-% %                     Pclick = 1 - Poisson(mu*t*mapping_passive(input, detection)*depol/2,0);
-% %                 end
-%                 Pclick = 1 - Poisson(mu*t*mapping_passive(input, detection), 0);
-%                 % account for dark count
-%                 Pclick = 1 - (1-Pclick)*(1-pd);
-%                 % AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
-%                 if outcome(detection) == 1
-%                     Ppattern = Ppattern * Pclick;
-%                 elseif outcome(detection) == 0
-%                     Ppattern = Ppattern * (1-Pclick);
-%                 end
-%             end
-%             expectations(input, pattern) = Ppattern;
-%         end
-%     end
-% end
 
 % convert a pattern between 1 and 64 to a 1x6 binary array corresponding to
 % a detection event

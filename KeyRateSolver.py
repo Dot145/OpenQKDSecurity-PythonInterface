@@ -16,8 +16,6 @@ class KeyRateSolver:
         self.time_middle = 347
         # default time range: 345-350
         self.time_range = np.arange(345, 351, 1, dtype='int')
-        # start matlab engine?
-        # default time range to like 345-350?
 
     def getKeyRate(self):
         if hasattr(self, 'eng'):
@@ -141,7 +139,7 @@ function parameters=setParameters(decoys, mis, depol, loss, etad, pzA, pzB, pxB,
     parameters.fixed.pd = pd;
     parameters.fixed.f = 1;
     parameters.fixed.fullstat = 1;
-    parameters.fixed.loss = loss
+    parameters.fixed.loss = loss;
     parameters.fixed.etad = etad;
     parameters.fixed.decoys = decoys;
     parameters.fixed.ext = true;    
