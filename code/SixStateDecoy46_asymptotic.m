@@ -13,15 +13,12 @@ function [protocolDescription,channelModel,leakageEC]=setDescription()
 end
 function parameters=setParameters(decoys, mis, depol, loss, etad, pzA, pzB, pxB, pd)
 
-    parameters.names = ["misalignment","loss", "etad", "depol","pzB","pzA", "pxB","pd","decoys", "f", 'fullstat', 'time', 'ext']; %BB84 Decoy
-    parameters.scan.time = [342 344 346 348 350 352];
+    parameters.names = ["misalignment","loss", "etad", "depol","pzB","pzA", "pxB","pd","decoys", "f", 'fullstat', 'time', 'ext']; 
+    parameters.scan.time = [345 346 347 348 349 350];
     parameters.fixed.misalignment = mis;
     parameters.fixed.depol = depol;
     parameters.fixed.pzA = pzA; 
-    % we found that choosing the following values for pzB and pxB works
-    % much better for getting key rate than the original parameters of 
-    % px = 0.5, pz = 0.25
-    parameters.fixed.pzB = 0.167;
+    parameters.fixed.pzB = 0.16699999999999998;
     parameters.fixed.pxB = 0.666;
     parameters.fixed.pd = pd;
     parameters.fixed.f = 1;

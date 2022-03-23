@@ -3,6 +3,7 @@ import glob
 import os
 from scipy.io import savemat
 import matlab.engine
+import math
 
 class KeyRateSolver:
     # constructor for KeyRateSolver object:
@@ -16,6 +17,8 @@ class KeyRateSolver:
         self.time_middle = 347
         # default time range: 345-350
         self.time_range = np.arange(345, 351, 1, dtype='int')
+        # default basis choice probabilities
+        self.setReceiverBasisChoice('x', 0.666)
 
     def getKeyRate(self):
         if hasattr(self, 'eng'):
@@ -29,12 +32,47 @@ class KeyRateSolver:
         print('Starting MATLAB engine... (this may take a while)')
         self.eng = matlab.engine.start_matlab()
         self.eng.addpath(self.eng.genpath('code'))
+        print('Done!')
 
 
-    # let the user set the time range; we adjust by time_middle so that the user time is centered as
+    # function to let the user set the time range; we adjust by time_middle so that the user time is centered as
     # t=0 being the time of closest approach
     def setTimeRange(self, start, end, step):
+        try:
+            # clean up any decimals before passing into arange
+            start = int(math.floor(start))
+            step = int(round(step))
+            # step of 0 doesn't work
+            if step == 0:
+                step = 1
+            end = int(math.ceil(end))
+            assert start < end
+        except:
+            print('Error: unable to set the time range. Make sure the starting time is less than the ending time, the step is positive, and that all arguments are integers.')
+            print('\tUsage: setTimeRange(start, end, step)')
+            return
         self.time_range = np.arange(start, end, step, dtype='int') + self.time_middle
+
+    # function to let the user set the basis choice probabilities for Bob
+    # the user choses a basis 'x', 'y', or 'z' as well as the probability p for that basis;
+    # the other two basis choices will automatically be set to (1-p)/2
+    # (any further asymmetry, though interesting, would not benefit key rate)
+    def setReceiverBasisChoice(self, basis, p):
+        if p > 0 and p < 1:
+            if basis == 'x':
+                self.pxB = p
+                self.pzB = (1.-p)/2.
+            elif basis == 'z':
+                self.pzB = p
+                self.pxB = (1.-p)/2.
+            elif basis == 'y':
+                self.pzB = (1.-p)/2.
+                self.pxB = (1.-p)/2.
+            else:
+                print('Error: basis choice must be "x", "y", or "z"!')
+        else:
+            print('Error: primary basis choice probability must be between 0 and 1')
+        
 
     # given a path to a folder containing a collection of .dat files, scans them and produces a matlab
     # .mat file that contains all of the info needed for our solver.
@@ -122,20 +160,21 @@ function [protocolDescription,channelModel,leakageEC]=setDescription()
 end
 function parameters=setParameters(decoys, mis, depol, loss, etad, pzA, pzB, pxB, pd)
 
-    parameters.names = ["misalignment","loss", "etad", "depol","pzB","pzA", "pxB","pd","decoys", "f", 'fullstat', 'time', 'ext']; %BB84 Decoy
+    parameters.names = ["misalignment","loss", "etad", "depol","pzB","pzA", "pxB","pd","decoys", "f", 'fullstat', 'time', 'ext']; 
     parameters.scan.time = '''
         # now is where the time range is set
-        rawPresetStr += str(self.time_range)
+        rawPresetStr += np.array2string(self.time_range).replace('\n','')
         # now print the rest of the file
         rawPresetStr += ''';
     parameters.fixed.misalignment = mis;
     parameters.fixed.depol = depol;
     parameters.fixed.pzA = pzA; 
-    % we found that choosing the following values for pzB and pxB works
-    % much better for getting key rate than the original parameters of 
-    % px = 0.5, pz = 0.25
-    parameters.fixed.pzB = 0.167;
-    parameters.fixed.pxB = 0.666;
+    parameters.fixed.pzB = '''
+        rawPresetStr += str(round(self.pzB, 4))
+        rawPresetStr += ''';
+    parameters.fixed.pxB = '''
+        rawPresetStr += str(round(self.pxB, 4))
+        rawPresetStr += ''';
     parameters.fixed.pd = pd;
     parameters.fixed.f = 1;
     parameters.fixed.fullstat = 1;

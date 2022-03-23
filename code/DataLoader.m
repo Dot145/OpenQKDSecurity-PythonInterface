@@ -6,6 +6,7 @@ classdef DataLoader < handle
     properties(Access=private)
         file_location
         rawExpectations
+        totChannel % loss as a function of time
         decoys
         parameters
     end
@@ -36,7 +37,10 @@ classdef DataLoader < handle
             num_time_steps = length(first_experiment.times);
             mis = first_experiment.rotation_angle;
             depol = 0.0; % this isn't in their data structure
-            loss = first_experiment.loss; 
+            loss = first_experiment.loss; % taken from the dB in the file name
+            % grab the totChannel as well, which is efficiency as a
+            % function of time
+            obj.totChannel = first_experiment.totChannel;
             etad = first_experiment.detector_x0_eff;
             pzA = 0.5; % not in the data structure
             pxB = 1 - first_experiment.BS1_transmissivity;
@@ -50,10 +54,8 @@ classdef DataLoader < handle
                 decoys_used(k) = data.(fn{k}).mean_photon_no;
             end
             obj.decoys = unique(decoys_used);
-            % discard 0 intensity part for now
-            obj.decoys = obj.decoys(obj.decoys > 0);
             % select the largest intensity as the signal pulse
-            obj.decoys = flip(obj.decoys);
+            obj.decoys = flip(sort(obj.decoys));
 
             obj.rawExpectations = zeros(4, 64, length(obj.decoys), num_time_steps);
         
@@ -63,13 +65,9 @@ classdef DataLoader < handle
                 experiment = data.(fn{k});
                 % check that this is using the basis data we want
                 if(ismember(experiment.signal, signals_used))
-                    % discard 0 intensity for now...
-                    if(experiment.mean_photon_no > 0)
-                        % grab H stuff
-                        signal_index = signals_used==experiment.signal;
-                        decoy_index = obj.decoys==experiment.mean_photon_no;
-                        obj.rawExpectations(signal_index, :, decoy_index, :) = experiment.detections';
-                    end
+                    signal_index = signals_used==experiment.signal;
+                    decoy_index = obj.decoys==experiment.mean_photon_no;
+                    obj.rawExpectations(signal_index, :, decoy_index, :) = experiment.detections';
                 end
             end
         end
@@ -96,6 +94,12 @@ classdef DataLoader < handle
             else
                 disp('*** ERROR: Attempt to retrieve expectation data when data has not been loaded! ***\nMake sure to call setFileLocation.')
             end
+        end
+        function loss_vals = getTotChannel(obj)
+            loss_vals = obj.totChannel;
+        end
+        function loss_point = getLoss(obj, time)
+            loss_point = 1 - obj.totChannel(time); % totChannel is transmittance, so 1-totChannel(time) = loss
         end
         function decoys = getDecoys(obj)
             decoys = obj.decoys;
