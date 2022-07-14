@@ -1,5 +1,5 @@
 import numpy as np
-import glob
+import glob, re
 import os
 from scipy.io import savemat
 import matlab.engine
@@ -19,6 +19,10 @@ class KeyRateSolver:
         self.time_range = np.arange(345, 351, 1, dtype='int')
         # default basis choice probabilities
         self.setReceiverBasisChoice('x', 0.666)
+        # allowed protocol (in case we add more in the future)
+        self.PROTOCOLS = {'pm46', 'pm44'}
+        # default protocol: pm46, but can also do pm44
+        self.protocol = 'pm46'
 
     def getKeyRate(self):
         if hasattr(self, 'eng'):
@@ -34,6 +38,12 @@ class KeyRateSolver:
         self.eng.addpath(self.eng.genpath('code'))
         print('Done!')
 
+    def setProtocol(self, protocol):
+        if protocol in self.PROTOCOLS:
+            self.protocol = protocol
+        else:
+            print('Error: ' + str(protocol) + ' is not a valid protocol.')
+            print('Available protocols: ' + str(self.PROTOCOLS))
 
     # function to let the user set the time range; we adjust by time_middle so that the user time is centered as
     # t=0 being the time of closest approach
@@ -144,77 +154,24 @@ class KeyRateSolver:
 
     # print out appropriate .m file, including the times contained in the object
     def createPreset(self):
-        # this is the first part of the preset file, up to declaring the time.
-        rawPresetStr = '''
-function [protocolDescription,channelModel,leakageEC,parameters,solverOptions] = SixStateDecoy46_asymptotic(decoys, mis, depol, loss, etad, pzA, pzB, pxB, pd)
-    [protocolDescription,channelModel,leakageEC]=setDescription();
-    parameters=setParameters(decoys, mis, depol, loss, etad, pzA, pzB, pxB, pd);
-    solverOptions=setOptions();
-end
-function [protocolDescription,channelModel,leakageEC]=setDescription()
-    
-    protocolDescription=str2func('SixStateReducedLossyDescription');
-    channelModel=str2func('SixStateDecoyChannel'); 
-    leakageEC=str2func('generalEC');
-
-end
-function parameters=setParameters(decoys, mis, depol, loss, etad, pzA, pzB, pxB, pd)
-
-    parameters.names = ["misalignment","loss", "etad", "depol","pzB","pzA", "pxB","pd","decoys", "f", 'fullstat', 'time', 'ext']; 
-    parameters.scan.time = '''
-        # now is where the time range is set
-        rawPresetStr += np.array2string(self.time_range).replace('\n','')
-        # now print the rest of the file
-        rawPresetStr += ''';
-    parameters.fixed.misalignment = mis;
-    parameters.fixed.depol = depol;
-    parameters.fixed.pzA = pzA; 
-    parameters.fixed.pzB = '''
-        rawPresetStr += str(round(self.pzB, 4))
-        rawPresetStr += ''';
-    parameters.fixed.pxB = '''
-        rawPresetStr += str(round(self.pxB, 4))
-        rawPresetStr += ''';
-    parameters.fixed.pd = pd;
-    parameters.fixed.f = 1;
-    parameters.fixed.fullstat = 1;
-    parameters.fixed.loss = loss
-    parameters.fixed.etad = etad;
-    parameters.fixed.decoys = decoys;
-    parameters.fixed.ext = true;    
-end
-
-function solverOptions=setOptions()
-    solverOptions.globalSetting.cvxSolver = 'mosek';
-    solverOptions.globalSetting.cvxPrecision = 'high';
-    
-    solverOptions.globalSetting.verboseLevel = 2; 
-  
-    solverOptions.optimizer.name = 'coordinateDescent'; 
-    solverOptions.optimizer.linearResolution = 3; 
-    solverOptions.optimizer.maxIterations = 2; 
-    solverOptions.optimizer.linearSearchAlgorithm = 'iterative'; 
-    solverOptions.optimizer.iterativeDepth = 2; 
-    solverOptions.optimizer.maxSteps = 10; 
-    solverOptions.optimizer.optimizerVerboseLevel = 1; 
-
-    solverOptions.solver1.name = 'asymptotic_inequality';
-    solverOptions.solver1.maxgap = 1e-6; 
-    solverOptions.solver1.maxiter = 20;%10;
-    solverOptions.solver1.initmethod = 1; %minimizes norm(rho0-rho) or -lambda_min(rho), use method 1 for finite size, 2 for asymptotic v1
-    solverOptions.solver1.linearconstrainttolerance = 1e-8;
-    solverOptions.solver1.linesearchprecision = 1e-20;
-    solverOptions.solver1.linesearchminstep = 1e-3;
-    solverOptions.solver1.maxgap_criteria = false; %true for testing gap, false for testing f1-f0
-    solverOptions.solver1.removeLinearDependence = 'none'; %'qr' for QR decomposition, 'rref' for row echelon form, empty '' for not removing linear dependence
-    solverOptions.solver2.name = 'asymptotic_inequality';
-    solverOptions.solver2.epsilon = 0;
-    solverOptions.solver2.epsilonprime = 1e-12;
-end
-'''
-        # write this huge text to a file
-        filename = 'code/SixStateDecoy46_asymptotic.m'
-        f = open(filename, 'w')
-        f.write(rawPresetStr)
-        f.close()
+        # file name to write to
+        filename = 'SixStateDecoy46_asymptotic.m'
+        # open the file for writing
+        writefile = open('code/'+filename, 'w')
+        # read the default preset file for 4-6
+        with open('code/preset_46.py', 'r') as f:
+            # read each line in the file
+            lines = f.readlines()
+            for line in lines:
+                # replace the time, pzB, and pxB parameters with what the user has set
+                if re.search('parameters.scan.time', line):
+                    writefile.write('\tparameters.scan.time = ' + np.array2string(self.time_range).replace('\n','') + ';\n')
+                elif re.search('parameters.fixed.pzB', line):
+                    writefile.write('\tparameters.fixed.pzB = ' + str(round(self.pzB, 4)) + ';\n')
+                elif re.search('parameters.fixed.pxB', line):
+                    writefile.write('\tparameters.fixed.pxB = ' + str(round(self.pxB, 4)) + ';\n')
+                else:
+                    writefile.write(line)
+        # close file
+        writefile.close()
         print('Wrote ' + filename + '\n with time values ' + str(self.time_range - self.time_middle) + '\n relative to closest approach.')
