@@ -27,7 +27,9 @@ function result = getKeyRate46(data_location)%[results, parameters]=getKeyRate46
     parameters = data_obj.getParameters();
     % set up the preset and assign parameter data
     preset='SixStateDecoy46_asymptotic';
-    mis = parameters(1);    depol = parameters(2);  loss = parameters(3);
+    % parameter extraction starts at 4 because 1-3 are misalignment, loss,
+    % and depolarization, which I later realized don't need to be imported.
+    % This should be made more sensible in the future.
     etad = parameters(4);   pzA = parameters(5);    pzB = parameters(6);
     pxB = parameters(7);    pd = parameters(8);
     % plug in the extracted decoy and parameter information into the
@@ -37,7 +39,7 @@ function result = getKeyRate46(data_location)%[results, parameters]=getKeyRate46
     % input parameters is directly edited, but in this case the parameters
     % are read from the data (or assumed; check the DataLoader class to see
     % and change which are assumed)
-    [protocolDescription,channelModel,leakageEC,parameters,solverOptions]=feval(preset, decoys, mis, depol, loss, etad, pzA, pzB, pxB, pd);
+    [protocolDescription,channelModel,leakageEC,parameters,solverOptions]=feval(preset, decoys, etad, pzA, pzB, pxB, pd);
     
     helper=helperFunctions; %load helper function file
     [parameters.names,parameters.order]=helper.getOrder(parameters); %generate sorting order or parameters (depending on the given name list)
