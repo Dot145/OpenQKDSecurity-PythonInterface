@@ -67,21 +67,35 @@ class KeyRateSolver:
     # the user choses a basis 'x', 'y', or 'z' as well as the probability p for that basis;
     # the other two basis choices will automatically be set to (1-p)/2
     # (any further asymmetry, though interesting, would not benefit key rate)
+    # has two modes, one for 46 and one for 44; if 'y' is chosen as the basis for 44, an error will occur.
     def setReceiverBasisChoice(self, basis, p):
+        # verify probability
         if p > 0 and p < 1:
-            if basis == 'x':
-                self.pxB = p
-                self.pzB = (1.-p)/2.
-            elif basis == 'z':
-                self.pzB = p
-                self.pxB = (1.-p)/2.
-            elif basis == 'y':
-                self.pzB = (1.-p)/2.
-                self.pxB = (1.-p)/2.
-            else:
-                print('Error: basis choice must be "x", "y", or "z"!')
+            # for 4-6 protocol:
+            if self.protocol == 'pm46':
+                if basis == 'x':
+                    self.pxB = p
+                    self.pzB = (1.-p)/2.
+                elif basis == 'z':
+                    self.pzB = p
+                    self.pxB = (1.-p)/2.
+                elif basis == 'y':
+                    self.pzB = (1.-p)/2.
+                    self.pxB = (1.-p)/2.
+                else:
+                    print('Error: basis choice must be "x", "y", or "z"!')
+            # for BB84
+            elif self.protocol == 'pm44':
+                if basis == 'x':
+                    self.pxB = p
+                    self.pzB = 1-p
+                elif basis == 'z':
+                    self.pzB = p
+                    self.pxB = 1-p
+                else:
+                    print('Error: basis choice must be "x" or "z"! (currently using ' + self.protocol + ' protocol)')
         else:
-            print('Error: primary basis choice probability must be between 0 and 1')
+            print('Error: primary basis choice probability must be between 0 and 1 exclusive')
         
 
     # given a path to a folder containing a collection of .dat files, scans them and produces a matlab
@@ -152,14 +166,20 @@ class KeyRateSolver:
         else:
             print('Error: no .dat files found!')
 
-    # print out appropriate .m file, including the times contained in the object
     def createPreset(self):
+        if self.protocol == 'pm46':
+            self.createPreset46()
+        elif self.protocol == 'pm44':
+            self.createPreset44()
+
+    # print out appropriate .m file, including the times contained in the object
+    def createPreset46(self):
         # file name to write to
         filename = 'SixStateDecoy46_asymptotic.m'
         # open the file for writing
         writefile = open('code/'+filename, 'w')
         # read the default preset file for 4-6
-        with open('code/preset_46.py', 'r') as f:
+        with open('code/preset_46.m', 'r') as f:
             # read each line in the file
             lines = f.readlines()
             for line in lines:
@@ -170,6 +190,27 @@ class KeyRateSolver:
                     writefile.write('\tparameters.fixed.pzB = ' + str(round(self.pzB, 4)) + ';\n')
                 elif re.search('parameters.fixed.pxB', line):
                     writefile.write('\tparameters.fixed.pxB = ' + str(round(self.pxB, 4)) + ';\n')
+                else:
+                    writefile.write(line)
+        # close file
+        writefile.close()
+        print('Wrote ' + filename + '\n with time values ' + str(self.time_range - self.time_middle) + '\n relative to closest approach.')
+
+    def createPreset44():
+        # file name to write to
+        filename = 'pmBB84Decoy_asymptotic.m'
+        # open the file for writing
+        writefile = open('code/'+filename, 'w')
+        # read the default preset file for BB84
+        with open('code/preset_44.m', 'r') as f:
+            # read each line in the file
+            lines = f.readlines()
+            for line in lines:
+                # replace time and pz with user's parameters
+                if re.search('parameters.scan.time', line):
+                    writefile.write('\tparameters.scan.time = ' + np.array2string(self.time_range).replace('\n', '') + ';\n')
+                elif re.search('parameters.fixed.pz', line):
+                    writefile.write('\tparameters.fixed.pz = ' + str(round(self.pzB, 4)) + ';\n')
                 else:
                     writefile.write(line)
         # close file

@@ -8,7 +8,7 @@ classdef DataLoader < handle
         rawExpectations
         totChannel % loss as a function of time
         decoys
-        parameters
+        basisChoice
     end
     methods(Access=private)
 
@@ -18,7 +18,7 @@ classdef DataLoader < handle
         function obj = DataLoader()
             obj.rawExpectations = [];
             obj.decoys = [];
-            obj.parameters = [];
+            obj.basisChoice = [];
             obj.file_location = '';
         end
     
@@ -35,18 +35,13 @@ classdef DataLoader < handle
             % grab one experiment from which we grab parameters
             first_experiment = data.(fn{1});
             num_time_steps = length(first_experiment.times);
-            mis = first_experiment.rotation_angle;
-            depol = 0.0; % this isn't in their data structure
-            loss = first_experiment.loss; % taken from the dB in the file name
             % grab the totChannel as well, which is efficiency as a
             % function of time
             obj.totChannel = first_experiment.totChannel;
-            etad = first_experiment.detector_x0_eff;
             pzA = 0.5; % not in the data structure
             pxB = 1 - first_experiment.BS1_transmissivity;
             pzB = first_experiment.BS1_transmissivity * first_experiment.BS2_transmissivity;
-            pd = first_experiment.dark_count;% + first_experiment.background_count;
-            obj.parameters = [mis, depol, loss, etad, pzA, pzB, pxB, pd];
+            obj.basisChoice = [pzA, pzB, pxB];
         
             % grab the decoy choices so we can pre-allocate the rawExpectations
             % array
@@ -104,8 +99,8 @@ classdef DataLoader < handle
         function decoys = getDecoys(obj)
             decoys = obj.decoys;
         end
-        function params = getParameters(obj)
-            params = obj.parameters;
+        function params = getBasisChoice(obj)
+            params = obj.basisChoice;
         end
     end
 
