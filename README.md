@@ -1,5 +1,5 @@
 # OpenQKDSecurity-PythonInterface
-This repository provides files for interfacing experimental data with https://github.com/nlutkenhaus/openQKDsecurity. In particular, this interface allows for experimental expectation data from e.g. a satellite to be used as an input to calculate key rates for a 4-6 protocol with passive detection and decoy.
+This repository provides files for interfacing experimental data with https://github.com/nlutkenhaus/openQKDsecurity. In particular, this interface allows for experimental expectation data from e.g. a satellite to be used as an input to calculate key rates for a 4-6 protocol or a BB84 with passive detection and decoy state analysis.
 
 ## Setup
 1. This interface requires openQKDsecurity (https://github.com/nlutkenhaus/openQKDsecurity) to be installed, so begin by following the steps there. 
@@ -14,19 +14,25 @@ solver = KeyRateSolver('path/to/data/')
 where `filename` is the path to the MATLAB data file which contains experimental data.
 
 ## Data Format
-The experimental data must be in a particular format to be read correctly. Though this format is subject to change (will likely become a JSON file in the near future), the current format is a MATLAB data struct (`.mat`) which contains a struct for each signal and decoy intensity (for example, if sending horizontal, vertical, diagonal, and anti-diagonal signals with four possible decoy intensities, there will be a total of 16 sub-structs). Each of these structs contains parameters relevant to the experiment such as mean photon number, misalignment, dark count, beamsplitter transmissivity, etc., which are read by the interface to generate an accurate key rate. Each struct also contains a list of times (which must be 1 by n) and detections (which must be n by 64) for each of the n time steps in the experimental data. The file `data/alldata.mat` is an example of a file in the appropriate format; it can be re-created by calling the `combineData` function of the KeyRateSolver object on a folder containing RefQ observation data (.dat files).
+The experimental data must be in a particular format to be read correctly. The current format is a MATLAB data struct (`.mat`) which contains a struct for each signal and decoy intensity (for example, if sending horizontal, vertical, diagonal, and anti-diagonal signals with four possible decoy intensities, there will be a total of 16 sub-structs). Each of these structs contains parameters relevant to the experiment which are read by the interface to generate an accurate key rate. The exact list of parameters needed is as follows:
+- the list of times at which data was collected (ex: [1,2,3,4,5] for 5 sets of expectation data)
+- the actual (16 or 64) x (# time steps) detection data, given as probabilities (16 for BB84, 64 for 4-6 protocol)
+- the mean photon number of the signal (AKA signal intensity)
+- a character denoting the signal polarization ('H', 'V', 'D', or 'A')
+The file `data/BB84_testdata.mat` is an example of a file in the appropriate format.
 
 ## KeyRateSolver Class Methods
 Descriptions of the methods of the KeyRateSolver class, as well as an example of use, follow.
 | Function | Inputs | Outputs | Description |
 | ----------- | ----------- | ----------- | ----------- |
-| \_\_init\_\_ | `path_to_data` : string | KeyRateSolver object | Initializes a KeyRateSolver object and stores the path to observation data (the folder that contains .dat files or `alldata.mat` |
+| \_\_init\_\_ | `path_to_data` : string | KeyRateSolver object | Initializes a KeyRateSolver object and stores the path to observation data (as a .mat file) |
 | startEngine | none | none | starts the MATLAB engine in python. Must be called before getKeyRate() |
+| setProtocol | `protocol` : string | none | Allows the user to switch between the BB84 and 4-6 protocols. Currently only supports asymptotic versions of both protocols. Available strings for protocols are `'pm44'` for BB84 and `'pm46'` for 4-6. Must be called before getPreset() or getKeyRate(), as the preset file depends on the correct protocol. |
 | setTimeRange | `start`, `end`, `step` : ints | none | Sets the time range of the key rate solver. Closest approach of the satellite is at t=0. Functions identical to numpy's `arange` function. |
-| setReceiverBasisChoice | `basis` : string, `probability` : int | none | Sets the basis choice probabilities for the receiver Bob. The first argument is the primary (biased) basis choice, whose probability will be set to the second argument `probability`. The other two basis choices are implicitly set to divide the remaining probability in half. |
-| combineData | `verbose` : boolean (optional) | none | Scans the folder set in the constructor for .dat files and compiles them into a file called `alldata.mat`, which is used by the key rate solver |
+| setReceiverBasisChoice | `basis` : string, `probability` : int | none | Sets the basis choice probabilities for the receiver Bob. The first argument is the primary (biased) basis choice, whose probability will be set to the second argument `probability`. The other two basis choices are implicitly set to divide the remaining probability in half in the 4-6 protocol; for BB84, the other basis choice will, obviously, be set to the remaining probability exactly. |
+| combineData | `verbose` : boolean (optional) | none | Scans the folder set in the constructor for .dat files and compiles them into a file called `alldata.mat`, which is used by the key rate solver. Not necessary for key rate calculation. |
 | createPreset | none | none | Sets up a preset file in the solver's software with the time range set by setTimeRange. This function must be called each time the time range is changed, but do note that it is called in getKeyRate() |
-| getKeyRate | none | dict | creates a preset file, reads `alldata.mat` in the data path set by the constructor, then computes the key rate for the provided time range. The return value is a MATLAB struct, which is converted into to a python dictionary in the KeyRateSolver class, and it can also be accessed from the `result` field of a KeyRateSolver object. This result dictionary contains all of the parameters of the experiment as well as the results. An example of how to extract key rate from the result is given below. |
+| getKeyRate | none | dict | creates a preset file, reads the data file set by the constructor, then computes the key rate for the provided time range. The return value is a MATLAB struct, which is converted into to a python dictionary in the KeyRateSolver class, and it can also be accessed from the `result` field of a KeyRateSolver object. This result dictionary contains all of the parameters of the experiment as well as the results. An example of how to extract key rate from the result is given below. |
 
 Here is an example of how to set up the KeyRateSolver class in Python, where the RefQ .dat files are contained in the `data/` directory:
 ```python
@@ -76,8 +82,6 @@ There are two things that can cause this to happen. The most common reason is th
 Another source of this issue is when the imported data leads to an infeasible semidefinite program in the key rate solver, which typically means that the detection data is nonphysical or there is a mismatch between the experimental parameters (such as basis choice probabilities) that generated the data and the parameters contained in the input data.
 
 ## Loose Ends
-
-At the moment, the object overrides basis choice probabilities from the imported data and defaults to px = 2/3, py = pz = 1/6. This matches the data that has been generated so far, but is subject to change in the future (eventually, this overriding functionality will be removed and the basis choice probabilities will be directly imported).
 
 The `misc` folder contains a python script that scans a folder for `.dat` files from RefQ and combines them into a `.mat` file to be used as an input to `getKeyRate46.m`. This is the same functionality provided by the combineData function of the KeyRateSolver class, but in the form of a standalone script.
 
