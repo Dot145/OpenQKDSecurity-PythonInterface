@@ -19,7 +19,7 @@ The experimental data must be in a particular format to be read correctly. The c
 - the actual (16 or 64) x (# time steps) detection data, given as probabilities (16 for BB84, 64 for 4-6 protocol)
 - the mean photon number of the signal (AKA signal intensity)
 - a character denoting the signal polarization ('H', 'V', 'D', or 'A')
-The file `data/BB84_testdata.mat` is an example of a file in the appropriate format.
+The file `data/BB84_testdata.mat` is an example of a file in the appropriate format. Note that if the user desires to switch protocols using the MATLAB version of the interface, they need only edit the line `preset = ...` in `getKeyRate46.m` (instructions in the comments). In addition, a MATLAB user should directly enter the basis choice probabilities in the preset files `SixStateDecoy46_asymptotic.m` (for 4-6) or `pmBB84Decoy_asymptotic.m` (for BB84). 
 
 ## KeyRateSolver Class Methods
 Descriptions of the methods of the KeyRateSolver class, as well as an example of use, follow.
