@@ -9,25 +9,24 @@ class KeyRateSolver:
     # constructor for KeyRateSolver object:
     # takes in a path, which should be a folder containing the .dat files that hold the data to be imported
     def __init__(self, path_to_data):
-        if path_to_data[-1] == '/':
-            self.path_to_data = path_to_data
-        else:
-            self.path_to_data = path_to_data + '/'
-        # default time middle 347 (data row of t=0)
-        self.time_middle = 347
+        self.path_to_data = path_to_data
         # default time range: 345-350
         self.time_range = np.arange(345, 351, 1, dtype='int')
-        # default basis choice probabilities
-        self.setReceiverBasisChoice('x', 0.666)
         # allowed protocol (in case we add more in the future)
         self.PROTOCOLS = {'pm46', 'pm44'}
+        # corresponding preset files
+        self.PRESET_FILES = {'pm46': 'SixStateDecoy46_asymptotic', 'pm44': 'pmBB84Decoy_asymptotic'}
         # default protocol: pm46, but can also do pm44
         self.protocol = 'pm46'
+        self.setProtocol(self.protocol)
+        # default basis choice probabilities
+        self.setReceiverBasisChoice('x', 0.666)
+
 
     def getKeyRate(self):
         if hasattr(self, 'eng'):
             self.createPreset()
-            self.result = self.eng.getKeyRate46(self.path_to_data+'/alldata.mat')
+            self.result = self.eng.getKeyRate46(self.path_to_data)
             return self.result
         else:
             print('Error: please start the MATLAB engine by calling startEngine() on this object!')
@@ -41,6 +40,16 @@ class KeyRateSolver:
     def setProtocol(self, protocol):
         if protocol in self.PROTOCOLS:
             self.protocol = protocol
+            # modify getKeyRate file to select the correct preset
+            lines = open('code/getKeyRate46.m', 'r').readlines()
+            lineNum = 0
+            for line in lines:
+                if re.search('preset *= *', line):
+                    lines[lineNum] = '    preset = "' + self.PRESET_FILES[protocol] + '";\n'
+                lineNum += 1
+            out = open('code/getKeyRate46.m', 'w')
+            out.writelines(lines)
+            out.close()
         else:
             print('Error: ' + str(protocol) + ' is not a valid protocol.')
             print('Available protocols: ' + str(self.PROTOCOLS))
@@ -61,7 +70,7 @@ class KeyRateSolver:
             print('Error: unable to set the time range. Make sure the starting time is less than the ending time, the step is positive, and that all arguments are integers.')
             print('\tUsage: setTimeRange(start, end, step)')
             return
-        self.time_range = np.arange(start, end, step, dtype='int') + self.time_middle
+        self.time_range = np.arange(start, end, step, dtype='int')
 
     # function to let the user set the basis choice probabilities for Bob
     # the user choses a basis 'x', 'y', or 'z' as well as the probability p for that basis;
@@ -194,9 +203,9 @@ class KeyRateSolver:
                     writefile.write(line)
         # close file
         writefile.close()
-        print('Wrote ' + filename + '\n with time values ' + str(self.time_range - self.time_middle) + '\n relative to closest approach.')
+        print('Wrote ' + filename + '\n with time values ' + str(self.time_range) + '.')
 
-    def createPreset44():
+    def createPreset44(self):
         # file name to write to
         filename = 'pmBB84Decoy_asymptotic.m'
         # open the file for writing
@@ -215,4 +224,4 @@ class KeyRateSolver:
                     writefile.write(line)
         # close file
         writefile.close()
-        print('Wrote ' + filename + '\n with time values ' + str(self.time_range - self.time_middle) + '\n relative to closest approach.')
+        print('Wrote ' + filename + '\n with time values ' + str(self.time_range) + '.')

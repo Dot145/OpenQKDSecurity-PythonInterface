@@ -16,12 +16,12 @@ function parameters=setParameters(decoys)
 
     parameters.names = ["misalignment","loss", "etad","pz","pd","decoys", "f", 'fullstat', 'time', 'ext']; 
 
-	parameters.scan.time = [1];
+    parameters.scan.time = 300:5:400;
     parameters.fixed.misalignment = 0;
     parameters.fixed.loss = 0;
     parameters.fixed.etad = 0;
     parameters.fixed.pd = 0;
-	parameters.fixed.pz = 0.167;
+    parameters.fixed.pz = 0.5; 
     parameters.fixed.f = 1;
     parameters.fixed.fullstat = 1;
     parameters.fixed.decoys = decoys;

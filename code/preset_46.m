@@ -1,7 +1,7 @@
 
-function [protocolDescription,channelModel,leakageEC,parameters,solverOptions] = SixStateDecoy46_asymptotic(decoys, etad, pzA, pzB, pxB, pd)
+function [protocolDescription,channelModel,leakageEC,parameters,solverOptions] = SixStateDecoy46_asymptotic(decoys)
     [protocolDescription,channelModel,leakageEC]=setDescription();
-    parameters=setParameters(decoys, etad, pzA, pzB, pxB, pd);
+    parameters=setParameters(decoys);
     solverOptions=setOptions();
 end
 function [protocolDescription,channelModel,leakageEC]=setDescription()
@@ -11,17 +11,17 @@ function [protocolDescription,channelModel,leakageEC]=setDescription()
     leakageEC=str2func('generalEC');
 
 end
-function parameters=setParameters(decoys, etad, pzA, pzB, pxB, pd)
+function parameters=setParameters(decoys)
 
     parameters.names = ["etad", "pzB","pzA", "pxB","pd","decoys", "f", 'fullstat', 'time']; 
     parameters.scan.time = [342 343 344 345 346 347 348 349 350 351 352];
-    parameters.fixed.pzA = pzA; 
+    parameters.fixed.pzA = 0.5; 
     parameters.fixed.pzB = 0.167;
     parameters.fixed.pxB = 0.666;
-    parameters.fixed.pd = pd;
+    parameters.fixed.pd = 1e-6;
     parameters.fixed.f = 1.16;
     parameters.fixed.fullstat = 1;
-    parameters.fixed.etad = etad;
+    parameters.fixed.etad = 1;
     parameters.fixed.decoys = decoys;
 end
 

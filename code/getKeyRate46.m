@@ -24,14 +24,15 @@ function result = getKeyRate46(data_location)%[results, parameters]=getKeyRate46
     data_obj.setFileLocation(data_location);
     % extract decoys and setup parameters from the loaded data
     decoys = data_obj.getDecoys();
-    parameters = data_obj.getParameters();
-    % set up the preset and assign parameter data
-    preset='SixStateDecoy46_asymptotic';
-    % parameter extraction starts at 4 because 1-3 are misalignment, loss,
-    % and depolarization, which I later realized don't need to be imported.
-    % This should be made more sensible in the future.
-    etad = parameters(4);   pzA = parameters(5);    pzB = parameters(6);
-    pxB = parameters(7);    pd = parameters(8);
+
+    %%%% set up the preset and assign parameter data %%%%
+    % set preset to the protocol you would like to use.
+    % options:  'SixStateDecoy46_asymptotic' % 4-6 asymptotic protocol
+    %           'SixStateDecoy46_finite'     % 4-6 finite size protocol
+    %           'pmBB84Decoy_asymptotic'     % BB84 asymptotic protocol
+
+    preset = "SixStateDecoy46_asymptotic";
+
     % plug in the extracted decoy and parameter information into the
     % channel description.
     % Note this is quite a bit different from how the software usually
@@ -39,7 +40,7 @@ function result = getKeyRate46(data_location)%[results, parameters]=getKeyRate46
     % input parameters is directly edited, but in this case the parameters
     % are read from the data (or assumed; check the DataLoader class to see
     % and change which are assumed)
-    [protocolDescription,channelModel,leakageEC,parameters,solverOptions]=feval(preset, decoys, etad, pzA, pzB, pxB, pd);
+    [protocolDescription,channelModel,leakageEC,parameters,solverOptions]=feval(preset, decoys);
     
     helper=helperFunctions; %load helper function file
     [parameters.names,parameters.order]=helper.getOrder(parameters); %generate sorting order or parameters (depending on the given name list)
@@ -92,15 +93,15 @@ function result = getKeyRate46(data_location)%[results, parameters]=getKeyRate46
 
         %%%%%% ALSO PROCESS LOSS AS A FUNCTION OF TIME %%%%%%%
         % check if we are scanning over time
-        scan_param = fieldnames(parameters.scan);
-        scan_param = scan_param{1}; %come on, matlab :(
-        if(strcmp(scan_param, 'time'))
-            % current time index
-            current_time = p_scan;
-            % find the index of the loss value in the fixed parameter list
-            lossIdx = strcmp(fieldnames(parameters.fixed), 'loss');
-            p_fixed(lossIdx) = {[data_obj.getLoss(current_time)]};
-        end
+%         scan_param = fieldnames(parameters.scan);
+%         scan_param = scan_param{1}; %come on, matlab :(
+%         if(strcmp(scan_param, 'time'))
+%             % current time index
+%             current_time = p_scan;
+%             % find the index of the loss value in the fixed parameter list
+%             lossIdx = strcmp(fieldnames(parameters.fixed), 'loss');
+%             p_fixed(lossIdx) = {[data_obj.getLoss(current_time)]};
+%         end
 
         fprintf('time: %d\n',p_scan);
         %%%%%%%%%%%%%% optimize parameter (optional) %%%%%%%%%%%%%%
@@ -138,24 +139,6 @@ function result = getKeyRate46(data_location)%[results, parameters]=getKeyRate46
         p_full=[p_scan,p_fixed,p_optimal]; %concatenate with p_fixed
         p_full = helper.reorder(p_full,parameters.order);
         
-        %%%%%%%%%%%%%% optimize loss, pxB, and pzB based on simulation data
-        %%%%% after some tests, it looks like this doesn't help key rate
-        %%%%% much and only adds probabilistic instability
-        % only if we are scanning over time!!
-%         scan_params = fieldnames(parameters.scan);
-%         if(scan_params{1} == 'time')
-%             lossIdx = parameters.names=='loss';
-%             pxBIdx = parameters.names=='pxB';
-%             pzBIdx = parameters.names=='pzB';
-%             
-%             % p_scan is the current time
-%             [optLoss, optpzB, optpxB] = optimizeParameters(decoys, mis, depol, loss, etad, pzA, pzB, pxB, pd, p_scan{1});
-%             p_full{lossIdx} = optLoss;
-%             p_full{pxBIdx} = optpxB;
-%             p_full{pzBIdx} = optpzB;
-%         end
-        %%%%%%%%%%%%%% end parameter optimization
-
         %evaluate the protocol description, channel model, and leakage
         thisProtocolDescription=protocolDescription(parameters.names,p_full);
         thisChannelModel=channelModel(thisProtocolDescription,parameters.names,p_full);

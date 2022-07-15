@@ -37,11 +37,13 @@ classdef DataLoader < handle
             num_time_steps = length(first_experiment.times);
             % grab the totChannel as well, which is efficiency as a
             % function of time
-            obj.totChannel = first_experiment.totChannel;
-            pzA = 0.5; % not in the data structure
-            pxB = 1 - first_experiment.BS1_transmissivity;
-            pzB = first_experiment.BS1_transmissivity * first_experiment.BS2_transmissivity;
-            obj.basisChoice = [pzA, pzB, pxB];
+            % probably don't need this
+%             obj.totChannel = first_experiment.totChannel;
+            % basis choice probabilities -- probably not needed either
+%             pzA = 0.5; % not in the data structure
+%             pxB = 1 - first_experiment.BS1_transmissivity;
+%             pzB = first_experiment.BS1_transmissivity * first_experiment.BS2_transmissivity;
+%             obj.basisChoice = [pzA, pzB, pxB];
         
             % grab the decoy choices so we can pre-allocate the rawExpectations
             % array
@@ -51,8 +53,9 @@ classdef DataLoader < handle
             obj.decoys = unique(decoys_used);
             % select the largest intensity as the signal pulse
             obj.decoys = flip(sort(obj.decoys));
-
-            obj.rawExpectations = zeros(4, 64, length(obj.decoys), num_time_steps);
+            % detect if we have 16 or 64 detection patterns
+            [~, detectionPatterns] = size(data.(fn{1}).detections);
+            obj.rawExpectations = zeros(4, detectionPatterns, length(obj.decoys), num_time_steps);
         
             % for now, grab only the H, V, D, and A (x and z basis) data
             signals_used = ['D','A','H','V'];
@@ -90,18 +93,18 @@ classdef DataLoader < handle
                 disp('*** ERROR: Attempt to retrieve expectation data when data has not been loaded! ***\nMake sure to call setFileLocation.')
             end
         end
-        function loss_vals = getTotChannel(obj)
-            loss_vals = obj.totChannel;
-        end
-        function loss_point = getLoss(obj, time)
-            loss_point = 1 - obj.totChannel(time); % totChannel is transmittance, so 1-totChannel(time) = loss
-        end
+%         function loss_vals = getTotChannel(obj)
+%             loss_vals = obj.totChannel;
+%         end
+%         function loss_point = getLoss(obj, time)
+%             loss_point = 1 - obj.totChannel(time); % totChannel is transmittance, so 1-totChannel(time) = loss
+%         end
         function decoys = getDecoys(obj)
             decoys = obj.decoys;
         end
-        function params = getBasisChoice(obj)
-            params = obj.basisChoice;
-        end
+%         function params = getBasisChoice(obj)
+%             params = obj.basisChoice;
+%         end
     end
 
 end
