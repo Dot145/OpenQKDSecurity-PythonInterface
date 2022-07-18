@@ -61,16 +61,8 @@ function channelModel = pmBB84ReducedDecoyChannel(protocolDescription,names,p)
     
     % simulate the channel (returns 4 x 64 matrix for each decoy)
     %%%%%%%%%%%%%% INSERT EXTERNAL DETECTOR DATA HERE %%%%%%%%%%%%%%%%%%%% 
-    if(ext)
-        dl = DataLoader.instance();
-        rawExpectations = dl.getRawExpectations(time);
-    else
-        CSC = memoize(@coherentSourceChannelBB84);
-        rawExpectations = zeros(4,16,numDecoys);
-        for i = 1 : numDecoys
-            rawExpectations(:,:,i) = CSC(decoys(i), 1-loss, etad, pd, misalignment, px);
-        end
-    end
+    dl = DataLoader.instance();
+    rawExpectations = dl.getRawExpectations(time);
     
     % convert 16-D pattern to 5-D POVM
     Mapping = createMapping();

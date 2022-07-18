@@ -20,9 +20,9 @@ clc;
 % %DO NOT AUTO SET PATH IF YOUR MATLAB HAS OTHER LIBRARIY DEPENDENCIES IN THE PATH!
 % %(OR IT WILL CLEAR ALL OTHER DEPENDENCY PATHS)
 % restoredefaultpath;
-addpath(genpath('.')) %add current software directory and all subfolders
+% addpath(genpath('.')) %add current software directory and all subfolders
 % %Windows path example
-addpath(genpath('D:\CVX\cvx')) %cvx
+% addpath(genpath('D:\CVX\cvx')) %cvx
 % addpath(genpath('C:\Program Files\Mosek\9.0\toolbox\R2015a')) %external mosek
 % %Mac/Linux path example
 % addpath(genpath('~/cvx'))

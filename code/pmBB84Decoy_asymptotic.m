@@ -21,7 +21,7 @@ function parameters=setParameters(decoys)
     parameters.fixed.loss = 0;
     parameters.fixed.etad = 0;
     parameters.fixed.pd = 0;
-	parameters.fixed.pz = 0.167;
+	parameters.fixed.pz = 0.5;
     parameters.fixed.f = 1;
     parameters.fixed.fullstat = 1;
     parameters.fixed.decoys = decoys;
@@ -43,7 +43,7 @@ function solverOptions=setOptions()
     solverOptions.optimizer.maxSteps = 10; 
     solverOptions.optimizer.optimizerVerboseLevel = 1; 
 
-    solverOptions.solver1.name = Solver.asymptotic_inequality;
+    solverOptions.solver1.name = 'asymptotic_inequality';
     
     solverOptions.solver1.maxgap = 1e-6; 
     solverOptions.solver1.maxiter = 10;
@@ -55,7 +55,7 @@ function solverOptions=setOptions()
     solverOptions.solver1.maxgap_criteria = true;
     solverOptions.solver1.removeLinearDependence = 'none'; 
     
-    solverOptions.solver2.name = Solver.asymptotic_inequality;
+    solverOptions.solver2.name = 'asymptotic_inequality';
     solverOptions.solver2.epsilon = 0;
     solverOptions.solver2.epsilonprime = 1e-12;
     
