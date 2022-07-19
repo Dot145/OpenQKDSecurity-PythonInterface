@@ -50,7 +50,7 @@ clc;
 tic
 
 %call main iteration function
-filename = 'data/alldata.mat';%'exported_data.mat';%
+filename = 'data/bb84_testdata.mat';%'exported_data.mat';%
 % [results, parameters] = getKeyRate46(filename);
 result = getKeyRate46(filename);
 % this line converts results from a cell array to a 1x5 struct;

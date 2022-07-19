@@ -27,11 +27,14 @@ function result = getKeyRate46(data_location)%[results, parameters]=getKeyRate46
 
     %%%% set up the preset and assign parameter data %%%%
     % set preset to the protocol you would like to use.
-    % options:  'SixStateDecoy46_asymptotic' % 4-6 asymptotic protocol
-    %           'SixStateDecoy46_finite'     % 4-6 finite size protocol
-    %           'pmBB84Decoy_asymptotic'     % BB84 asymptotic protocol
+    % options:  'pm46Decoy_asymptotic'      % 4-6 asymptotic protocol
+    %           'pm46Decoy_finite'          % 4-6 finite size protocol
+    %           'pmBB84Decoy_asymptotic'    % BB84 asymptotic protocol
+    %           'pmBB84Decoy_finite'        % BB84 finite size protocol
 
-    preset = "SixStateDecoy46_asymptotic";
+    preset = "pmBB84Decoy_finite";
+
+    
 
     % plug in the extracted decoy and parameter information into the
     % channel description.
@@ -40,7 +43,12 @@ function result = getKeyRate46(data_location)%[results, parameters]=getKeyRate46
     % input parameters is directly edited, but in this case the parameters
     % are read from the data (or assumed; check the DataLoader class to see
     % and change which are assumed)
-    [protocolDescription,channelModel,leakageEC,parameters,solverOptions]=feval(preset, decoys);
+    if(strcmp(preset, "pmBB84Decoy_finite") || strcmp(preset, "pm46Decoy_finite"))
+        N_signals = data_obj.getN();
+        [protocolDescription,channelModel,leakageEC,parameters,solverOptions]=feval(preset, decoys, N_signals);
+    else
+        [protocolDescription,channelModel,leakageEC,parameters,solverOptions]=feval(preset, decoys);
+    end
     
     helper=helperFunctions; %load helper function file
     [parameters.names,parameters.order]=helper.getOrder(parameters); %generate sorting order or parameters (depending on the given name list)

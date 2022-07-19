@@ -13,9 +13,9 @@ class KeyRateSolver:
         # default time range: 345-350
         self.time_range = np.arange(345, 351, 1, dtype='int')
         # allowed protocol (in case we add more in the future)
-        self.PROTOCOLS = {'pm46', 'pm44'}
+        self.PROTOCOLS = {'pm46', 'pm44', 'pm46finite', 'pm44finite'}
         # corresponding preset files
-        self.PRESET_FILES = {'pm46': 'SixStateDecoy46_asymptotic', 'pm44': 'pmBB84Decoy_asymptotic'}
+        self.PRESET_FILES = {'pm46': 'pm46Decoy_asymptotic', 'pm44': 'pmBB84Decoy_asymptotic', 'pm46finite': 'pm46Decoy_finite', 'pm44finite': 'pmBB84Decoy_finite'}
         # default protocol: pm46, but can also do pm44
         self.protocol = 'pm46'
         self.setProtocol(self.protocol)
@@ -81,7 +81,7 @@ class KeyRateSolver:
         # verify probability
         if p > 0 and p < 1:
             # for 4-6 protocol:
-            if self.protocol == 'pm46':
+            if self.protocol == 'pm46' or self.protocol == 'pm46finite':
                 if basis == 'x':
                     self.pxB = p
                     self.pzB = (1.-p)/2.
@@ -94,7 +94,7 @@ class KeyRateSolver:
                 else:
                     print('Error: basis choice must be "x", "y", or "z"!')
             # for BB84
-            elif self.protocol == 'pm44':
+            elif self.protocol == 'pm44' or self.protocol == 'pm44finite':
                 if basis == 'x':
                     self.pxB = p
                     self.pzB = 1-p
@@ -180,11 +180,15 @@ class KeyRateSolver:
             self.createPreset46()
         elif self.protocol == 'pm44':
             self.createPreset44()
+        elif self.protocol == 'pm46finite':
+            self.createPreset46finite()
+        elif self.protocol == 'pm44finite':
+            self.createPreset44finite()
 
     # print out appropriate .m file, including the times contained in the object
     def createPreset46(self):
         # file name to write to
-        filename = 'SixStateDecoy46_asymptotic.m'
+        filename = self.PRESET_FILES[self.protocol] + '.m'
         # open the file for writing
         writefile = open('code/'+filename, 'w')
         # read the default preset file for 4-6
@@ -194,20 +198,44 @@ class KeyRateSolver:
             for line in lines:
                 # replace the time, pzB, and pxB parameters with what the user has set
                 if re.search('parameters.scan.time', line):
-                    writefile.write('\tparameters.scan.time = ' + np.array2string(self.time_range).replace('\n','') + ';\n')
+                    writefile.write('    parameters.scan.time = ' + np.array2string(self.time_range).replace('\n','') + ';\n')
                 elif re.search('parameters.fixed.pzB', line):
-                    writefile.write('\tparameters.fixed.pzB = ' + str(round(self.pzB, 4)) + ';\n')
+                    writefile.write('    parameters.fixed.pzB = ' + str(round(self.pzB, 4)) + ';\n')
                 elif re.search('parameters.fixed.pxB', line):
-                    writefile.write('\tparameters.fixed.pxB = ' + str(round(self.pxB, 4)) + ';\n')
+                    writefile.write('    parameters.fixed.pxB = ' + str(round(self.pxB, 4)) + ';\n')
                 else:
                     writefile.write(line)
         # close file
         writefile.close()
         print('Wrote ' + filename + '\n with time values ' + str(self.time_range) + '.')
 
+    def createPreset46finite(self):
+        # file name to write to
+        filename = self.PRESET_FILES[self.protocol] + '.m'
+        # open the file for writing
+        writefile = open('code/'+filename, 'w')
+        # read the default preset file for 4-6
+        with open('code/preset_46_finite.m', 'r') as f:
+            # read each line in the file
+            lines = f.readlines()
+            for line in lines:
+                # replace the time, pzB, and pxB parameters with what the user has set
+                if re.search('parameters.scan.time', line):
+                    writefile.write('    parameters.scan.time = ' + np.array2string(self.time_range).replace('\n','') + ';\n')
+                elif re.search('parameters.fixed.pzB', line):
+                    writefile.write('    parameters.fixed.pzB = ' + str(round(self.pzB, 4)) + ';\n')
+                elif re.search('parameters.fixed.pxB', line):
+                    writefile.write('    parameters.fixed.pxB = ' + str(round(self.pxB, 4)) + ';\n')
+                else:
+                    writefile.write(line)
+        # close file
+        writefile.close()
+        print('Wrote ' + filename + '\n with time values ' + str(self.time_range) + '.')
+
+
     def createPreset44(self):
         # file name to write to
-        filename = 'pmBB84Decoy_asymptotic.m'
+        filename = self.PRESET_FILES[self.protocol] + '.m'
         # open the file for writing
         writefile = open('code/'+filename, 'w')
         # read the default preset file for BB84
@@ -217,11 +245,33 @@ class KeyRateSolver:
             for line in lines:
                 # replace time and pz with user's parameters
                 if re.search('parameters.scan.time', line):
-                    writefile.write('\tparameters.scan.time = ' + np.array2string(self.time_range).replace('\n', '') + ';\n')
+                    writefile.write('    parameters.scan.time = ' + np.array2string(self.time_range).replace('\n', '') + ';\n')
                 elif re.search('parameters.fixed.pz', line):
-                    writefile.write('\tparameters.fixed.pz = ' + str(round(self.pzB, 4)) + ';\n')
+                    writefile.write('    parameters.fixed.pz = ' + str(round(self.pzB, 4)) + ';\n')
                 else:
                     writefile.write(line)
         # close file
         writefile.close()
         print('Wrote ' + filename + '\n with time values ' + str(self.time_range) + '.')
+
+    def createPreset44finite(self):
+        # file name to write to
+        filename = self.PRESET_FILES[self.protocol] + '.m'
+        # open the file for writing
+        writefile = open('code/'+filename, 'w')
+        # read the default preset file for BB84
+        with open('code/preset_44_finite.m', 'r') as f:
+            # read each line in the file
+            lines = f.readlines()
+            for line in lines:
+                # replace time and pz with user's parameters
+                if re.search('parameters.scan.time', line):
+                    writefile.write('    parameters.scan.time = ' + np.array2string(self.time_range).replace('\n', '') + ';\n')
+                elif re.search('parameters.fixed.pz', line):
+                    writefile.write('    parameters.fixed.pz = ' + str(round(self.pzB, 4)) + ';\n')
+                else:
+                    writefile.write(line)
+        # close file
+        writefile.close()
+        print('Wrote ' + filename + '\n with time values ' + str(self.time_range) + '.')
+

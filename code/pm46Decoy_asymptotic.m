@@ -1,5 +1,5 @@
 
-function [protocolDescription,channelModel,leakageEC,parameters,solverOptions] = SixStateDecoy46_asymptotic(decoys)
+function [protocolDescription,channelModel,leakageEC,parameters,solverOptions] = pm46Decoy_asymptotic(decoys)
     [protocolDescription,channelModel,leakageEC]=setDescription();
     parameters=setParameters(decoys);
     solverOptions=setOptions();

@@ -8,7 +8,7 @@ classdef DataLoader < handle
         rawExpectations
         totChannel % loss as a function of time
         decoys
-        basisChoice
+        N
     end
     methods(Access=private)
 
@@ -18,7 +18,7 @@ classdef DataLoader < handle
         function obj = DataLoader()
             obj.rawExpectations = [];
             obj.decoys = [];
-            obj.basisChoice = [];
+            obj.N = 0;
             obj.file_location = '';
         end
     
@@ -67,6 +67,14 @@ classdef DataLoader < handle
                     decoy_index = obj.decoys==experiment.mean_photon_no;
                     obj.rawExpectations(signal_index, :, decoy_index, :) = experiment.detections';
                 end
+                if(isfield(experiment, "N"))
+                    obj.N = obj.N + experiment.N;
+                end
+            end
+            if(isfield(experiment, "N"))
+                if(obj.N < 1e9)
+                    fprintf("WARNING: total number of signals sent N = %d! Any amount less than 10^9 is unlikely to generate key rate", obj.N)
+                end
             end
         end
     end
@@ -102,9 +110,9 @@ classdef DataLoader < handle
         function decoys = getDecoys(obj)
             decoys = obj.decoys;
         end
-%         function params = getBasisChoice(obj)
-%             params = obj.basisChoice;
-%         end
+        function params = getN(obj)
+            params = obj.N;
+        end
     end
 
 end

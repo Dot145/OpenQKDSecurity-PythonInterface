@@ -249,35 +249,6 @@ function mapping = createMapping()
     mapping=[MappingH,MappingV,MappingD,MappingA,MappingN];
 end
 
-% convert a pattern between 1 and 64 to a 1x6 binary array corresponding to
-% a detection event
-% 2  -> 0,0,0,0,0,1
-% 33 -> 1,0,0,0,0,0
-function outcome = index1to6(pattern)
-    % because i originally wrote this code to work on 
-    % numbers from 0 to 63 -_-
-    pattern = pattern - 1;
-    outcome = zeros(1,6);
-    for iBit = 1:6
-        e = 6-iBit; % the power of 2 to divide by
-        outcome(iBit) = floor(pattern/(2^e));
-        pattern = mod(pattern, 2^e);
-    end
-end
-% keeping this bit just in case everything breaks, but it has weird
-% ordering (000000 -> 100000 -> 010000 ...)
-% function outcome = index1to6(pattern)
-%     % because i originally wrote this code to work on 
-%     % numbers from 0 to 63 -_-
-%     pattern = pattern - 1;
-%     outcome = zeros(1,6);
-%     for iBit = 1:6
-%         e = 6-iBit; % the power of 2 to divide by
-%         outcome(e+1) = floor(pattern/(2^e));
-%         pattern = mod(pattern, 2^e);
-%     end
-% end
-
 % function to perform decoy state anylsis
 function [Y1L, Y1U] = decoyAnalysis(decoys, decoy_expectations)
     cvx_solver mosek
@@ -361,44 +332,6 @@ function [Y1L, Y1U] = decoyAnalysis(decoys, decoy_expectations)
     end
 
     Y1L = Y(2);
-end
-
-%helper function that simulates the channel for WCP sources for BB84
-function expectations=coherentSourceChannelBB84(mu,eta,etad,pd,ed,px)
-    expectations=zeros(4,16);
-    pz=1-px;
-    t=eta*etad; %total transmittance
-    Poisson=@(mu,n) exp(-mu)*mu^n/factorial(n);
-
-    theta=ed;
-    PL=sin(pi/4-theta)^2;
-    PU=cos(pi/4-theta)^2;
-    % see page 9 of the paper
-    mapping_passive=[[pz*(1-ed),pz*ed,px*PU,px*PL];[pz*ed,pz*(1-ed),px*PL,px*PU];[pz*PL,pz*PU,px*(1-ed),px*ed];[pz*PU,pz*PL,px*ed,px*(1-ed)]];
-    
-    for input=1:4
-        %iterating over each input state
-        
-        for output=1:16
-            %iterating over each pattern
-            a=index1to4(output-1); %detector event, 4 elements corresponding to [H,V,D,A]
-            
-            Ppattern=1;
-            %passive basis choice
-            for k=1:4
-                %iterating over each detector
-                Pclick=1-Poisson(mu*t*mapping_passive(input,k),0); 
-                % effect of dark count
-                Pclick=1-(1-Pclick)*(1-pd); 
-                if(a(k)==1)
-                    Ppattern=Ppattern*Pclick;
-                elseif(a(k)==0)
-                    Ppattern=Ppattern*(1-Pclick);
-                end
-            end
-            expectations(input,output)=Ppattern;
-        end
-    end
 end
 
 %takes in an index of 1 and convert to array of 4
