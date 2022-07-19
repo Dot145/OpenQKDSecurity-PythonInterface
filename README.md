@@ -15,10 +15,11 @@ where `filename` is the path to the MATLAB data file which contains experimental
 
 ## Data Format
 The experimental data must be in a particular format to be read correctly. The current format is a MATLAB data struct (`.mat`) which contains a struct for each signal and decoy intensity (for example, if sending horizontal, vertical, diagonal, and anti-diagonal signals with four possible decoy intensities, there will be a total of 16 sub-structs). Each of these structs contains parameters relevant to the experiment which are read by the interface to generate an accurate key rate. The exact list of parameters needed is as follows:
-- the list of times at which data was collected (ex: [1,2,3,4,5] for 5 sets of expectation data)
-- the actual (16 or 64) x (# time steps) detection data, given as probabilities (16 for BB84, 64 for 4-6 protocol)
-- the mean photon number of the signal (AKA signal intensity)
-- a character denoting the signal polarization ('H', 'V', 'D', or 'A')
+- `times`: the list of times at which data was collected (ex: [1,2,3,4,5] for 5 sets of expectation data)
+- `detections`: the actual (16 or 64) x (# time steps) detection data, given as probabilities (16 for BB84, 64 for 4-6 protocol)
+- `mean_photon_no`: the mean photon number of the signal (AKA signal intensity)
+- `signal`: a character denoting the signal polarization ('H', 'V', 'D', or 'A')
+- `N`: (in the case of a finite size protocol) the number of signals sent corresponding to this intensity and signal choice. 
 The file `data/BB84_testdata.mat` is an example of a file in the appropriate format. Note that if the user desires to switch protocols using the MATLAB version of the interface, they need only edit the line `preset = ...` in `getKeyRate46.m` (instructions in the comments). In addition, a MATLAB user should directly enter the basis choice probabilities in the preset files `SixStateDecoy46_asymptotic.m` (for 4-6) or `pmBB84Decoy_asymptotic.m` (for BB84). 
 
 ## KeyRateSolver Class Methods
@@ -80,6 +81,9 @@ There isn't a lot I can do here, but there are several options to try. One optio
 ### I'm getting an error that says "The global CVX solver selection cannot be changed while a model is being constructed."
 There are two things that can cause this to happen. The most common reason is that the program was aborted mid-computation, and so the convex optimization module CVX was aborted mid-computation, which can cause issues. This error can be solved by calling `startEngine()` again. 
 Another source of this issue is when the imported data leads to an infeasible semidefinite program in the key rate solver, which typically means that the detection data is nonphysical or there is a mismatch between the experimental parameters (such as basis choice probabilities) that generated the data and the parameters contained in the input data.
+
+### I'm getting a key rate of 0 at every step and the program is telling me there is a step 2 solver exception.
+This is a bug in the main openQKDsecurity software when dealing with the 4-6 protocol. I have submitted a pull request to the main software repository to fix it, but until it's fixed, you can replace openQKDsecurity/Solvers/Asymptotic_Solver/step2solverAsymptotic.m with [this version](https://github.com/Dot145/openQKDsecurity/blob/preRelease/Solvers/Asymptotic_Solver/step2SolverAsymptotic.m).
 
 ## Loose Ends
 
