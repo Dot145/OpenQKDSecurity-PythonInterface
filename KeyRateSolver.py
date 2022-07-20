@@ -22,7 +22,6 @@ class KeyRateSolver:
         # default basis choice probabilities
         self.setReceiverBasisChoice('x', 0.666)
 
-
     def getKeyRate(self):
         if hasattr(self, 'eng'):
             self.createPreset()
